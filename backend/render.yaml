@@ -1,0 +1,19 @@
+# Render blueprint. Point Render at this repo with root directory "backend".
+services:
+  - type: web
+    name: jc-command-center-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true      # Render makes one; changing it signs everyone out
+      - key: DATABASE_URL
+        sync: false              # paste the Postgres connection string
+      - key: CORS_ORIGINS
+        sync: false              # https://your-app.vercel.app  (empty if proxying)
