@@ -3,14 +3,22 @@ import 'dotenv/config';
 
 const url = process.env.DATABASE_URL || 'postgres://localhost:5432/jc_command_center';
 const isLocal = /@?(localhost|127\.0\.0\.1)/.test(url);
+const declaresSsl = /[?&]sslmode=/.test(url);
 
-/* Managed Postgres (Render, Neon, Supabase) requires TLS and serves a cert the
-   Node default trust store does not know. rejectUnauthorized:false is what those
-   providers document; the connection is still encrypted. Local dev needs no TLS. */
+/* SSL, three cases:
+   - localhost: none.
+   - URL already says sslmode (Neon, Supabase): leave it alone. pg parses it and
+     sets the SNI servername from the host, which Neon needs to route at all.
+   - URL says nothing but the host is remote (Render's internal URL): turn TLS on
+     and skip verification, since those certs are not in the Node trust store.
+     Still encrypted, just unverified. */
+const ssl = isLocal ? false : declaresSsl ? undefined : { rejectUnauthorized: false };
+
 export const pool = new pg.Pool({
   connectionString: url,
-  ssl: isLocal ? false : { rejectUnauthorized: false },
-  max: Number(process.env.PG_POOL_MAX || 10)
+  ...(ssl === undefined ? {} : { ssl }),
+  max: Number(process.env.PG_POOL_MAX || 10),
+  connectionTimeoutMillis: 15000
 });
 
 pool.on('error', err => console.error('Unexpected Postgres pool error', err));
