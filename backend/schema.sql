@@ -62,3 +62,14 @@ create table if not exists events (
   constraint events_end_after_start check (end_at > start_at)
 );
 create index if not exists events_user_start_idx on events(user_id, start_at);
+
+-- Phase 3 -------------------------------------------------------------------
+
+create table if not exists dashboard_layouts (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references users(id) on delete cascade,
+  breakpoint  text not null check (breakpoint in ('desktop','mobile')),
+  widgets     jsonb not null default '[]'::jsonb,
+  updated_at  timestamptz not null default now(),
+  unique (user_id, breakpoint)
+);

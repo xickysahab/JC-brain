@@ -9,7 +9,7 @@ Stack: React (Vite) + Node/Express + Postgres.
 
 ---
 
-## Ban chuka hai — Phase 1 + Phase 2
+## Ban chuka hai — Phase 1, 2 aur 3
 
 | | |
 |---|---|
@@ -21,8 +21,11 @@ Stack: React (Vite) + Node/Express + Postgres.
 | Urgency engine | 9 labels + attention score — overdue apne aap upar aata hai |
 | Calendar | Month / Week / Day, apne events, double-click se create, drag se reschedule |
 | Deadlines on calendar | Open tasks ki deadline markers ki tarah, SOS laal mein |
+| **Dashboard canvas** | Free canvas — drag, resize, overlap, z-order, snap, undo/redo |
+| Layout persistence | Per user, per breakpoint; default layout jab tak kuch save na ho |
+| Widgets | Clock, number card, task list, sticky note (charts P4 mein) |
 
-Baaki (canvas engine, widgets, mobile layout) abhi placeholder hain.
+Baaki (charts + widget config, mobile layout) abhi placeholder hain.
 
 ## Setup
 
@@ -54,7 +57,7 @@ cd frontend && npm run dev    # App  → http://localhost:5180
 ## Tests
 
 ```bash
-cd backend  && npm test   # urgency engine — 7 checks
+cd backend  && npm test   # urgency engine, CORS allowlist, layout validation — 21 checks
 cd frontend && npm test   # date math + calendar overlap layout — 8 checks
 ```
 
@@ -66,16 +69,18 @@ Yahi do jagah asli logic hai; baaki sab CRUD aur layout hai.
 
 ```
 backend/                → Render
-  schema.sql            tables: accounts, users, tasks, events
+  schema.sql            tables: accounts, users, tasks, events, dashboard_layouts
   render.yaml           Render blueprint
   src/
     index.js            express app + routes wiring
     db.js               pg pool
     auth.js             hashing, JWT cookie, requireAuth / requireAdmin
     score.js            urgency engine (charts P4 mein isi ko use karenge)
+    layout.js           widget shape, defaults aur validation
+    allowed-origin.js   CORS allowlist
     migrate.js          schema.sql apply karta hai (npm run db:migrate)
     setup.js            schema + pehla admin banata hai
-    routes/             auth.js · tasks.js · calendar.js · admin.js
+    routes/             auth.js · tasks.js · calendar.js · dashboard.js · admin.js
   test/score.test.js
 
 frontend/               → Vercel
@@ -84,12 +89,13 @@ frontend/               → Vercel
     App.jsx             auth gate + routes
     api.js              fetch wrapper
     dates.js            local-time helpers + overlap lane layout
-    components/         Shell (slide-in sidebar) · TaskDrawer · EventDrawer
-    pages/              Login · Todo · Calendar · Admin · Dashboard*
+    useHistory.js       undo/redo (ek drag = ek undo step)
+    components/         Shell · TaskDrawer · EventDrawer · canvas/
+    widgets/            registry + Clock · Counter · TaskList · Note · Placeholder
+    pages/              Login · Todo · Calendar · Dashboard · Admin
   test/dates.test.js
 ```
 
-`*` = placeholder, apne phase mein banega.
 
 ## Deploy
 
@@ -174,9 +180,19 @@ sirf HTTPS par kaam karega — Render par ye apne aap hai.
 - **Ek hi call se calendar bharta hai** — `GET /api/calendar?from&to` events aur
   task deadlines dono deta hai.
 - **Drag ghante par snap karta hai.** Exact time chahiye toh drawer se set karo.
+- **Canvas bhi hath se likha hai** — koi grid/dnd library nahi. Native pointer
+  events, absolute positioning, overlap allowed, 8px optional snap.
+- **Ek drag = ek undo step.** History gesture ke shuru mein ek baar snapshot
+  leti hai, har pointermove par nahi.
+- **Widget registry se chalta hai** (`frontend/src/widgets/index.jsx`). Naya
+  widget add karne ke liye canvas ko chhune ki zaroorat nahi. Anjaan type
+  placeholder ban jaata hai, taaki aaj ka layout kal bhi khule.
+- **Layout server par sanitize hota hai** — position clamp, unknown type drop,
+  duplicate id fix. Ek kharab widget poora dashboard nahi rok sakta.
 
 ## Abhi jo nahi hai
 
-Dashboard canvas, widgets/charts, mobile layout, recurring events, calendar sync, Inbox/Delegated/Waiting/
+Charts (pie/bar/line) aur widget config panel, mobile layout editor,
+recurring events, calendar sync, Inbox/Delegated/Waiting/
 Think, Clients/Payments/Revenue, Ideas, Recurring, reviews, notifications,
 integrations, public signup, billing.
