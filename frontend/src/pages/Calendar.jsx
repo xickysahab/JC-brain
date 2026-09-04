@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api.js';
 import EventDrawer from '../components/EventDrawer.jsx';
+import TimePromptModal from '../components/TimePromptModal.jsx';
 import {
   startOfDay, addDays, addMonths, startOfWeek, startOfMonth, monthGridStart,
   sameDay, isToday, fmtTime, fmtRange, hourOf, layOut, DAY_NAMES
@@ -23,6 +24,7 @@ export default function Calendar() {
   const [drawer, setDrawer] = useState(null);
   const [quick, setQuick] = useState('');
   const [quickBusy, setQuickBusy] = useState(false);
+  const [timePrompt, setTimePrompt] = useState(null);
 
   const { buckets } = useBuckets();
 
@@ -106,6 +108,11 @@ export default function Calendar() {
     let payload; try { payload = JSON.parse(e.dataTransfer.getData('text/plain')); } catch { return; }
     if (!payload?.id) return;
 
+    if (hour == null && payload.type === 'task') {
+      setTimePrompt({ day, payload });
+      return;
+    }
+
     const start = new Date(day);
     if (hour == null) start.setHours(payload.h, payload.m, 0, 0);
     else start.setHours(hour, 0, 0, 0);
@@ -123,6 +130,16 @@ export default function Calendar() {
     } catch (err) { setError(err.message); }
   };
   
+  const handleTimePromptConfirm = async (startDate, endDate) => {
+    if (!timePrompt) return;
+    try {
+      await api.patch(`/tasks/${timePrompt.payload.id}`,
+        { start_date: startDate.toISOString(), deadline: endDate.toISOString() });
+      load();
+    } catch (err) { setError(err.message); }
+    setTimePrompt(null);
+  };
+
   const dropUnschedule = async e => {
     e.preventDefault();
     let payload; try { payload = JSON.parse(e.dataTransfer.getData('text/plain')); } catch { return; }
@@ -307,6 +324,15 @@ export default function Calendar() {
       </div>
 
       {drawer && <EventDrawer event={drawer} onClose={() => setDrawer(null)} onChanged={load} />}
+      {timePrompt && (
+        <TimePromptModal
+          day={timePrompt.day}
+          defaultHour={timePrompt.payload.h}
+          defaultMin={timePrompt.payload.m}
+          onClose={() => setTimePrompt(null)}
+          onConfirm={handleTimePromptConfirm}
+        />
+      )}
     </>
   );
 }
