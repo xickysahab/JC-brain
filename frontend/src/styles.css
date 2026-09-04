@@ -222,22 +222,22 @@ input.chip{width:auto}
 
 /* ---------- capture ---------- */
 .quick{
-  display:flex;gap:12px;margin-bottom:24px;align-items:center;padding:6px 6px 6px 18px;
+  display:flex;gap:10px;margin-bottom:24px;align-items:center;padding:4px 4px 4px 14px;
   background:var(--surface);border:1px solid var(--border-2);
-  border-radius:var(--r-pill);box-shadow:var(--shadow-md);
+  border-radius:var(--r-pill);box-shadow:var(--shadow-sm);
   transition:border-color .2s var(--ease), box-shadow .2s var(--ease);
 }
 .quick:focus-within{
   border-color:var(--accent);
-  box-shadow:0 0 0 3px var(--accent-soft), var(--shadow-lg);
+  box-shadow:0 0 0 3px var(--accent-soft), var(--shadow-md);
 }
 .quick input{
-  flex:1;height:38px;font-size:15px;padding:0;border:none;
+  flex:1;height:32px;font-size:14px;padding:0;border:none;
   background:transparent;color:var(--ink);
 }
 .quick input::placeholder{color:var(--ink-3)}
 .quick input:focus{outline:none;box-shadow:none}
-.quick .btn{height:36px;padding:0 20px;font-size:13.5px;border-radius:var(--r-pill);font-weight:600}
+.quick .btn{height:32px;padding:0 16px;font-size:13px;border-radius:var(--r-pill);font-weight:500}
 
 /* ---------- rows ---------- */
 .row{
