@@ -223,6 +223,12 @@ sirf HTTPS par kaam karega — Render par ye apne aap hai.
   dead end hota.
 - **Bucket ke naam case-insensitive unique hain** — "Sales" aur "sales" do alag
   buckets nahi ban sakte.
+- **Ek hi design system** `frontend/src/styles.css` mein hai — tokens, phir
+  components. Koi UI library nahi; Instrument Sans + JetBrains Mono, near-black
+  canvas, ek cool accent, patli borders. Semantic colours (danger/warning/
+  success) accent se hamesha alag rehte hain.
+- **Poori UI copy English mein hai.** Product mein Hinglish label nahi jaayenge
+  — "Uncategorised", "Bina bucket" nahi.
 - **Grouping JS mein hoti hai**, SQL mein nahi — ek hi code path computed
   dimensions (urgency, due bucket) aur plain columns dono ke liye.
 

@@ -10,7 +10,7 @@ export default function Board({ tasks, buckets, onAssign, onOpen }) {
   const [over, setOver] = useState(null);
 
   const columns = [
-    { id: 'none', name: 'Bina bucket', color: null },
+    { id: 'none', name: 'Uncategorised', color: null },
     ...buckets.map(b => ({ id: b.id, name: b.name, color: bucketColor(b) }))
   ];
 
@@ -47,7 +47,7 @@ export default function Board({ tasks, buckets, onAssign, onOpen }) {
                   </div>
                 </article>
               ))}
-              {!cards.length && <p className="bempty">khaali</p>}
+              {!cards.length && <p className="bempty">Drop tasks here</p>}
             </div>
           </section>
         );

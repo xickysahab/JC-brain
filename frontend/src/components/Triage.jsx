@@ -7,16 +7,16 @@ export default function Triage({ tasks, buckets, onAssign, onOpen, busyId }) {
   if (!buckets.length) {
     return (
       <div className="empty">
-        <strong>Pehle ek bucket banao</strong>
-        Upar &ldquo;+ New bucket&rdquo; se — Payment, Sales, Content, jo bhi aapka kaam hai.
+        <strong>Create a bucket first</strong>
+        Use &ldquo;New bucket&rdquo; above — Payments, Sales, Content, whatever your work actually is.
       </div>
     );
   }
   if (!tasks.length) {
     return (
       <div className="empty">
-        <strong>Sab kuch sort ho chuka hai</strong>
-        Koi task bina bucket ke nahi bacha.
+        <strong>Inbox zero</strong>
+        Every task has a bucket.
       </div>
     );
   }
@@ -24,7 +24,7 @@ export default function Triage({ tasks, buckets, onAssign, onOpen, busyId }) {
   return (
     <>
       <p className="muted" style={{ margin: '0 0 10px' }}>
-        {tasks.length} task bina bucket ke. Neeche se bucket chuno — turant chala jaayega.
+        {tasks.length} task{tasks.length === 1 ? '' : 's'} waiting to be sorted. Pick a bucket below — it files instantly.
       </p>
       {tasks.map(t => (
         <div key={t.id} className={'triage' + (busyId === t.id ? ' busy' : '')}>

@@ -17,11 +17,11 @@ export default function BucketBar({ store, selected, onSelect, showCounts = true
   };
 
   const doRename = async b => {
-    const next = prompt(`"${b.name}" ka naya naam:`, b.name);
+    const next = prompt(`Rename "${b.name}" to:`, b.name);
     if (next && next.trim() && next !== b.name) await rename(b.id, next);
   };
   const doRemove = async b => {
-    if (!confirm(`"${b.name}" bucket hataana hai?\n\nIske ${b.task_count} task delete NAHI honge — wo wapas bina-bucket ho jaayenge.`)) return;
+    if (!confirm(`Delete the "${b.name}" bucket?\n\nIts ${b.task_count} task(s) will not be deleted — they move back to Uncategorised.`)) return;
     await remove(b.id);
   };
 
@@ -51,21 +51,21 @@ export default function BucketBar({ store, selected, onSelect, showCounts = true
 
       {unbucketed > 0 && (
         <button className={'bchip loose' + (selected === 'none' ? ' on' : '')} onClick={() => onSelect('none')}>
-          Bina bucket <b>{unbucketed}</b>
+          Uncategorised <b>{unbucketed}</b>
         </button>
       )}
 
       {adding ? (
         <form className="badd" onSubmit={submit}>
-          <input autoFocus value={name} maxLength={40} placeholder="Bucket ka naam"
+          <input autoFocus value={name} maxLength={40} placeholder="Bucket name"
                  onChange={e => setName(e.target.value)}
                  onKeyDown={e => e.key === 'Escape' && setAdding(false)} />
-          <button className="btn sm primary">Add</button>
+          <button className="btn sm primary">Create</button>
           <button type="button" className="btn sm" onClick={() => setAdding(false)}>Cancel</button>
         </form>
       ) : (
         <>
-          <button className="bchip ghost" onClick={() => setAdding(true)}>+ New bucket</button>
+          <button className="bchip ghost" onClick={() => setAdding(true)}>New bucket</button>
           {buckets.length > 0 && (
             <button className="bchip ghost" onClick={() => setManaging(m => !m)}>
               {managing ? 'Done' : 'Manage'}

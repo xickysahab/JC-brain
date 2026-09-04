@@ -85,8 +85,8 @@ export default function Canvas({
 
       {!widgets.length && (
         <div className="canvas-empty">
-          <strong>Canvas khaali hai</strong>
-          {editing ? 'Upar "Add widget" se shuru karo.' : '"Edit layout" dabao aur widgets lagao.'}
+          <strong>Nothing on the canvas</strong>
+          {editing ? 'Add a widget from the toolbar above.' : 'Choose “Edit layout” to start adding widgets.'}
         </div>
       )}
     </div>

@@ -85,7 +85,7 @@ export default function Calendar() {
     <>
       <div className="head">
         <h1>Calendar</h1>
-        <p>Apne meetings, aur task deadlines markers ki tarah. Event ko drag karke reschedule karo.</p>
+        <p>Your meetings, with task deadlines marked alongside. Drag an event to reschedule it.</p>
       </div>
 
       <div className="calbar">
@@ -179,7 +179,7 @@ export default function Calendar() {
       )}
 
       <p className="muted" style={{ marginTop: 10 }}>
-        Khaali jagah par double-click karke event banao · event drag karke reschedule karo (ghante par snap hota hai)
+        Double-click empty space to create an event · drag an event to reschedule (snaps to the hour)
       </p>
 
       {drawer && <EventDrawer event={drawer} onClose={() => setDrawer(null)} onChanged={load} />}

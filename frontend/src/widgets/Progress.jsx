@@ -27,7 +27,7 @@ export default function Progress({ widget }) {
     <div className="w-progress">
       <strong>{done} <span>/ {goal}</span></strong>
       <div className="track"><div className="fill" style={{ width: pct + '%' }} /></div>
-      <span className="cap">{widget.config?.title || 'Is mahine complete'} · {pct}%</span>
+      <span className="cap">{widget.config?.title || 'Completed this month'} · {pct}%</span>
     </div>
   );
 }

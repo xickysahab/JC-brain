@@ -33,7 +33,7 @@ export default function TaskModal({ task, buckets, fields, visible, onClose, onS
 
   const submit = async e => {
     e.preventDefault();
-    if (!String(draft.title || '').trim()) { setError('Title chahiye'); return; }
+    if (!String(draft.title || '').trim()) { setError('A title is required'); return; }
     setBusy(true); setError('');
     const body = { title: draft.title.trim() };
     for (const f of shown) body[f.key] = draft[f.key] ?? null;
@@ -45,7 +45,7 @@ export default function TaskModal({ task, buckets, fields, visible, onClose, onS
   };
 
   const remove = async () => {
-    if (!confirm(`"${task.title}" delete karna hai? Wapas nahi aayega.`)) return;
+    if (!confirm(`Delete "${task.title}"? This cannot be undone.`)) return;
     try { await api.del(`/tasks/${task.id}`); onSaved(); onClose(); }
     catch (err) { setError(err.message); }
   };
@@ -70,7 +70,7 @@ export default function TaskModal({ task, buckets, fields, visible, onClose, onS
       case 'bucket':
         return (
           <select value={v || ''} onChange={e => set(f.key, e.target.value || null)}>
-            <option value="">Bina bucket</option>
+            <option value="">Uncategorised</option>
             {buckets.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
           </select>
         );
@@ -91,7 +91,7 @@ export default function TaskModal({ task, buckets, fields, visible, onClose, onS
       <div className="scrim" onClick={onClose} />
       <div className="tmodal" role="dialog" aria-label={isNew ? 'New task' : 'Edit task'}>
         <header>
-          <h2>{picking ? 'Modal customise karo' : isNew ? 'Naya task' : 'Task'}</h2>
+          <h2>{picking ? 'Customise this form' : isNew ? 'New task' : 'Task details'}</h2>
           <button className="dclose" onClick={onClose} aria-label="Close">&times;</button>
         </header>
 
@@ -101,7 +101,7 @@ export default function TaskModal({ task, buckets, fields, visible, onClose, onS
           <>
             <div className="tmbody">
               <p className="muted" style={{ margin: '0 0 12px' }}>
-                Jo fields chahiye wahi tick karo. <strong>Title hamesha rahega</strong> — usse hata nahi sakte.
+                Tick the fields you want on this form. <strong>Title is always shown</strong> and cannot be removed.
               </p>
               <div className="fieldpick">
                 {fields.map(f => (
@@ -117,7 +117,7 @@ export default function TaskModal({ task, buckets, fields, visible, onClose, onS
               <button className="btn primary" onClick={saveFields}>Save fields</button>
               <button className="btn" onClick={() => { setPicked(visible); setPicking(false); }}>Cancel</button>
               <span className="grow" />
-              <span className="muted">{picked.length} fields</span>
+              <span className="muted">{picked.length} of {fields.length} fields selected</span>
             </footer>
           </>
         ) : (
@@ -134,14 +134,14 @@ export default function TaskModal({ task, buckets, fields, visible, onClose, onS
                   {field(f)}
                 </div>
               ))}
-              {!shown.length && <p className="muted">Sirf title dikh raha hai. Neeche se aur fields chuno.</p>}
+              {!shown.length && <p className="muted">Only the title is shown. Add more fields with “Customise form” below.</p>}
             </div>
             <footer>
               <button className="btn primary" disabled={busy}>{busy ? 'Saving…' : 'Save'}</button>
               <button type="button" className="btn" onClick={onClose}>Cancel</button>
               {!isNew && <button type="button" className="btn danger" onClick={remove}>Delete</button>}
               <span className="grow" />
-              <button type="button" className="btn ghostbtn" onClick={() => setPicking(true)}>Edit modal</button>
+              <button type="button" className="btn ghostbtn" onClick={() => setPicking(true)}>Customise form</button>
             </footer>
           </form>
         )}

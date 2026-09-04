@@ -28,14 +28,14 @@ r.get('/', async (req, res) => {
 
 r.post('/', async (req, res) => {
   const name = clean(req.body?.name);
-  if (!name) return res.status(400).json({ error: 'Bucket ka naam chahiye' });
+  if (!name) return res.status(400).json({ error: 'A bucket name is required' });
 
   const count = await one('select count(*)::int as n from buckets where user_id = $1', [req.user.id]);
-  if (count.n >= MAX) return res.status(400).json({ error: `${MAX} se zyada buckets nahi` });
+  if (count.n >= MAX) return res.status(400).json({ error: `You can have at most ${MAX} buckets` });
 
   // Case-insensitive uniqueness, so "Sales" and "sales" cannot both exist.
   if (await one('select id from buckets where user_id = $1 and lower(name) = lower($2)', [req.user.id, name]))
-    return res.status(409).json({ error: `"${name}" pehle se hai` });
+    return res.status(409).json({ error: `A bucket called "${name}" already exists` });
 
   const bucket = await one(
     `insert into buckets (user_id, account_id, name, color, position)
@@ -49,12 +49,12 @@ r.patch('/:id', async (req, res) => {
   const set = {};
   if ('name' in req.body) {
     const name = clean(req.body.name);
-    if (!name) return res.status(400).json({ error: 'Bucket ka naam chahiye' });
+    if (!name) return res.status(400).json({ error: 'A bucket name is required' });
     const clash = await one(
       'select id from buckets where user_id = $1 and lower(name) = lower($2) and id <> $3',
       [req.user.id, name, req.params.id]
     );
-    if (clash) return res.status(409).json({ error: `"${name}" pehle se hai` });
+    if (clash) return res.status(409).json({ error: `A bucket called "${name}" already exists` });
     set.name = name;
   }
   if ('color' in req.body) set.color = Math.max(0, Math.min(7, Number(req.body.color) || 0));

@@ -33,7 +33,7 @@ export default function Chart({ widget }) {
 
   if (error) return <div className="w-msg">{error}</div>;
   if (!data) return <div className="w-msg">Loading…</div>;
-  if (!data.groups.length) return <div className="w-msg">Is filter mein koi task nahi</div>;
+  if (!data.groups.length) return <div className="w-msg">No tasks match this filter</div>;
 
   const shown = fold(data.groups, MAX_SLICES[form]);
 

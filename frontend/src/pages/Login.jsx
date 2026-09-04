@@ -24,8 +24,8 @@ export default function Login({ onSignedIn }) {
     <div className="login">
       <form onSubmit={submit}>
         <div className="brand">JC COMMAND CENTER</div>
-        <h1>Sign in</h1>
-        <p className="muted" style={{ margin: '0 0 18px' }}>Accounts are created by the admin.</p>
+        <h1>Welcome back</h1>
+        <p className="muted" style={{ margin: '0 0 22px' }}>Accounts are created by your administrator.</p>
         {error && <div className="err">{error}</div>}
         <div className="field">
           <label htmlFor="email">EMAIL</label>

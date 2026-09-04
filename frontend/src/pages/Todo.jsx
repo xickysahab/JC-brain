@@ -19,16 +19,16 @@ const VIEWS = [
 const MODES = [
   { id: 'list',   label: 'List' },
   { id: 'board',  label: 'Board' },
-  { id: 'triage', label: 'Triage' }
+  { id: 'triage', label: 'Sort' }
 ];
 const EMPTY = {
-  open:     ['Kuch open nahi hai', 'Upar likho aur Enter dabao.'],
-  today:    ['Aaj ke liye kuch nahi', 'Kisi task par deadline daal do.'],
-  overdue:  ['Kuch overdue nahi', 'Sab time par hai.'],
-  week:     ['Is hafte koi deadline nahi', ''],
-  sos:      ['Koi SOS nahi', ''],
-  progress: ['Abhi kuch chalu nahi', ''],
-  done:     ['Abhi kuch complete nahi hua', '']
+  open:     ['Nothing open', 'Type above and press Add to capture something.'],
+  today:    ['Nothing due today', 'Give a task a deadline and it will show up here.'],
+  overdue:  ['Nothing overdue', 'Everything is still on time.'],
+  week:     ['No deadlines this week', ''],
+  sos:      ['No SOS tasks', 'Mark a task SOS when it cannot wait.'],
+  progress: ['Nothing in progress', ''],
+  done:     ['Nothing completed yet', '']
 };
 const hot = l => l === 'OVERDUE' || l === 'DUE TODAY' || l === 'SOS';
 const warn = l => l === 'DUE SOON' || l === 'TOMORROW';
@@ -92,18 +92,18 @@ export default function Todo() {
   const visible = mode === 'list' && bucketId
     ? tasks.filter(t => (bucketId === 'none' ? !t.bucket_id : t.bucket_id === bucketId))
     : tasks;
-  const [emptyTitle, emptyHint] = EMPTY[view] || ['Kuch nahi mila', ''];
+  const [emptyTitle, emptyHint] = EMPTY[view] || ['No matches', ''];
 
   return (
     <>
       <div className="head">
-        <h1>To-do</h1>
-        <p>Pehle sab dump karo — phir Triage se apne buckets mein baant do.</p>
+        <h1>Tasks</h1>
+        <p>Capture everything first. Sort it into buckets when you are ready.</p>
       </div>
 
       <form className="quick" onSubmit={add}>
         <input value={title} onChange={e => setTitle(e.target.value)}
-               placeholder="What's on your mind?" aria-label="New task" />
+               placeholder="What needs doing?" aria-label="New task" />
         <button className="btn primary" disabled={!title.trim()}>Add</button>
       </form>
 
@@ -134,7 +134,7 @@ export default function Todo() {
           <strong>{selected.size} selected</strong>
           {store.buckets.map(b => (
             <button key={b.id} className="btn sm" onClick={() => bulk({ patch: { bucket_id: b.id } })}>
-              &rarr; {b.name}
+              Move to {b.name}
             </button>
           ))}
           <button className="btn sm" onClick={() => bulk({ patch: { status: 'Done' } })}>Mark done</button>

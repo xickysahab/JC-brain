@@ -21,7 +21,7 @@ export default function QuickAdd({ editing }) {
   return (
     <form className="w-quick" onSubmit={submit}>
       <input value={title} onChange={e => setTitle(e.target.value)}
-             placeholder="What's on your mind?" aria-label="New task" disabled={editing} />
+             placeholder="What needs doing?" aria-label="New task" disabled={editing} />
       <button className="btn sm primary" disabled={busy || !title.trim()}>Add</button>
       {error && <span className="msg err-inline">{error}</span>}
       {done && <span className="msg ok-inline">{done}</span>}

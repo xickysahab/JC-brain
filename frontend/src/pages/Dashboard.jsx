@@ -45,7 +45,7 @@ export default function Dashboard() {
   const cancel = () => { setEditing(false); setSelectedId(null); load(); };
 
   const resetLayout = async () => {
-    if (!confirm('Default layout par wapas jaana hai? Aapka arrangement chala jaayega.')) return;
+    if (!confirm('Reset to the default layout? Your arrangement will be lost.')) return;
     try {
       const d = await api.del(`/dashboard?breakpoint=${BREAKPOINT}`);
       reset(d.widgets); setIsDefault(true); dirty.current = false;
@@ -101,8 +101,8 @@ export default function Dashboard() {
         <h1>Dashboard</h1>
         <p>
           {editing
-            ? 'Widget ko drag karo, kone se resize karo. Arrow keys se nudge, Delete se hatao, ⌘Z undo.'
-            : isDefault ? 'Yeh default layout hai — "Edit layout" se apna banao.' : 'Aapka apna layout.'}
+            ? 'Drag to move, pull the corner to resize, select a widget to change its settings. Arrow keys nudge, Delete removes, ⌘Z undoes.'
+            : isDefault ? 'This is the starting layout — choose “Edit layout” to make it yours.' : 'Your saved layout.'}
         </p>
       </div>
 
@@ -114,7 +114,7 @@ export default function Dashboard() {
             </button>
             <button className="btn" onClick={cancel}>Cancel</button>
             <span className="sep" />
-            <button className="btn" onClick={() => setPicking(p => !p)} aria-expanded={picking}>+ Add widget</button>
+            <button className="btn" onClick={() => setPicking(p => !p)} aria-expanded={picking}>Add widget</button>
             <button className="btn" onClick={undo} disabled={!canUndo} title="⌘Z">Undo</button>
             <button className="btn" onClick={redo} disabled={!canRedo} title="⇧⌘Z">Redo</button>
             <label className="snap">

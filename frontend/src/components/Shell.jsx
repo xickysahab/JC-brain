@@ -4,7 +4,7 @@ import { api } from '../api.js';
 
 const NAV = [
   { to: '/',         label: 'Dashboard' },
-  { to: '/todo',     label: 'To-do', counter: 'open' },
+  { to: '/todo',     label: 'Tasks', counter: 'open' },
   { to: '/calendar', label: 'Calendar' }
 ];
 

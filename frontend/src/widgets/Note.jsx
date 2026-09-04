@@ -5,7 +5,7 @@ export default function Note({ widget, onConfigChange, editing }) {
     <textarea
       className="w-note"
       value={widget.config?.text || ''}
-      placeholder="Likho…"
+      placeholder="Write a note…"
       readOnly={editing}
       onChange={e => onConfigChange({ ...widget.config, text: e.target.value })}
     />

@@ -18,7 +18,7 @@ export default function Admin({ me }) {
     setError(''); setNotice(''); setBusy(true);
     try {
       await api.post('/admin/users', form);
-      setNotice(`${form.email} ka account ban gaya. Password unhe khud bhejna hoga.`);
+      setNotice(`Account created for ${form.email}. Send them the password yourself — it is not shown again.`);
       setForm({ name: '', email: '', password: '' });
       load();
     } catch (err) { setError(err.message); } finally { setBusy(false); }
@@ -28,7 +28,7 @@ export default function Admin({ me }) {
     const password = prompt(`New password for ${u.email} (at least 8 characters):`);
     if (!password) return;
     setError(''); setNotice('');
-    try { await api.post(`/admin/users/${u.id}/password`, { password }); setNotice(`${u.email} ka password badal diya.`); }
+    try { await api.post(`/admin/users/${u.id}/password`, { password }); setNotice(`Password updated for ${u.email}.`); }
     catch (err) { setError(err.message); }
   };
 
@@ -42,7 +42,7 @@ export default function Admin({ me }) {
     <>
       <div className="head">
         <h1>Users</h1>
-        <p>Aap accounts banate ho. Unka data unka rehta hai — aap unke tasks nahi dekh sakte.</p>
+        <p>You create the accounts. Their data stays theirs — you cannot see another user's tasks.</p>
       </div>
 
       {error && <div className="err">{error}</div>}
@@ -91,7 +91,7 @@ export default function Admin({ me }) {
           <input id="p" required minLength={8} value={form.password}
                  onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
           <p className="muted" style={{ marginTop: 5 }}>
-            At least 8 characters. Password screen par nahi dikhega — copy karke unhe bhej dena.
+            At least 8 characters. It is not shown again, so copy it before you save.
           </p>
         </div>
         <button className="btn primary" disabled={busy}>{busy ? 'Creating…' : 'Create user'}</button>

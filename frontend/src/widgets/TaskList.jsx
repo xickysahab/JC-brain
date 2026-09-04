@@ -20,7 +20,7 @@ export default function TaskList({ widget }) {
 
   if (error) return <div className="w-msg">{error}</div>;
   if (!tasks) return <div className="w-msg">Loading…</div>;
-  if (!tasks.length) return <div className="w-msg">Is view mein kuch nahi</div>;
+  if (!tasks.length) return <div className="w-msg">Nothing in this view</div>;
 
   return (
     <ul className="w-list">
