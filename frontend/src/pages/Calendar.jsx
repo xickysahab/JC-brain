@@ -52,7 +52,13 @@ export default function Calendar() {
   const quickAdd = async e => {
     e.preventDefault();
     if (!quick.trim() || quickBusy) return;
-    const parsed = chrono.parse(quick);
+    
+    // Help chrono understand "on 6" by converting it to "on the 6 of this month"
+    const parsingText = quick.replace(/\bon\s+(\d{1,2})(?:st|nd|rd|th)?\b/gi, 'on the $1 of this month');
+    
+    // Pass 'anchor' as the reference date so "this month" means the month the user is currently viewing!
+    const parsed = chrono.parse(parsingText, anchor, { forwardDate: true });
+    
     if (!parsed.length) {
       setError("Couldn't understand the date/time.");
       return;
@@ -61,8 +67,11 @@ export default function Calendar() {
     let start_at = result.start.date();
     let end_at = result.end ? result.end.date() : new Date(start_at.getTime() + 60 * 60 * 1000);
     
-    // Fallback title logic
-    let title = quick.replace(result.text, '').trim() || 'New Event';
+    // Use the original 'quick' text when extracting the title, or the parsingText?
+    // Using parsingText is safer because result.text corresponds to the matched part of parsingText.
+    let title = parsingText.replace(result.text, '').trim();
+    // Revert "of this month" if it accidentally leaked into the title (unlikely, but just in case)
+    title = title.replace(/of this month/gi, '').trim() || 'New Event';
 
     setQuickBusy(true);
     try {
