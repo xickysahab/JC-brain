@@ -57,6 +57,7 @@ create table if not exists events (
   location    text,
   attendees   text,
   notes       text,
+  bucket_id   uuid references buckets(id) on delete set null,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now(),
   constraint events_end_after_start check (end_at > start_at)

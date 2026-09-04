@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import { toLocalInput, fromLocalInput } from '../dates.js';
 import DialogModal from './DialogModal.jsx';
+import { useBuckets } from '../useBuckets.js';
 
 /* Handles both a brand new draft and an existing event. Events have a start
    and an end that must agree, so this one saves on a button rather than
@@ -12,6 +13,7 @@ export default function EventDrawer({ event, onClose, onChanged }) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [dialog, setDialog] = useState(null);
+  const { buckets } = useBuckets();
 
   useEffect(() => setDraft(event), [event]);
   useEffect(() => {
@@ -27,7 +29,8 @@ export default function EventDrawer({ event, onClose, onChanged }) {
     setError(''); setBusy(true);
     const body = {
       title: draft.title, start_at: draft.start_at, end_at: draft.end_at,
-      location: draft.location || null, attendees: draft.attendees || null, notes: draft.notes || null
+      location: draft.location || null, attendees: draft.attendees || null, notes: draft.notes || null,
+      bucket_id: draft.bucket_id || null
     };
     try {
       if (isNew) await api.post('/calendar/events', body);
@@ -64,6 +67,13 @@ export default function EventDrawer({ event, onClose, onChanged }) {
             <label htmlFor="ev-t">TITLE</label>
             <input id="ev-t" autoFocus required value={draft.title || ''}
                    onChange={e => set('title', e.target.value)} />
+          </div>
+          <div className="field">
+            <label htmlFor="ev-b">BUCKET</label>
+            <select id="ev-b" value={draft.bucket_id || ''} onChange={e => set('bucket_id', e.target.value)}>
+              <option value="">No bucket</option>
+              {buckets.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
           </div>
           <div className="two">
             <div className="field">

@@ -6,6 +6,8 @@ import {
   sameDay, isToday, fmtTime, fmtRange, hourOf, layOut, DAY_NAMES
 } from '../dates.js';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import * as chrono from 'chrono-node';
+import { useBuckets, bucketColor } from '../useBuckets.js';
 
 const DAY_START = 6;              // grid runs 06:00 - 23:00
 const DAY_END = 23;
@@ -19,6 +21,10 @@ export default function Calendar() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [drawer, setDrawer] = useState(null);
+  const [quick, setQuick] = useState('');
+  const [quickBusy, setQuickBusy] = useState(false);
+
+  const { buckets } = useBuckets();
 
   const [from, to, days] = useMemo(() => {
     if (view === 'month') { const f = monthGridStart(anchor); return [f, addDays(f, 42), 42]; }
@@ -43,38 +49,93 @@ export default function Calendar() {
     setDrawer({ title: '', start_at: start.toISOString(), end_at: end.toISOString() });
   };
 
-  /* Drag to reschedule. The drag carries the event id plus its length, so the
-     drop only has to decide a new start; snapping is to the hour. */
-  const onDragStart = (e, ev) => {
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', JSON.stringify({
-      id: ev.id,
-      ms: new Date(ev.end_at) - new Date(ev.start_at),
-      h: new Date(ev.start_at).getHours(),
-      m: new Date(ev.start_at).getMinutes()
-    }));
+  const quickAdd = async e => {
+    e.preventDefault();
+    if (!quick.trim() || quickBusy) return;
+    const parsed = chrono.parse(quick);
+    if (!parsed.length) {
+      setError("Couldn't understand the date/time.");
+      return;
+    }
+    const result = parsed[0];
+    let start_at = result.start.date();
+    let end_at = result.end ? result.end.date() : new Date(start_at.getTime() + 60 * 60 * 1000);
+    
+    // Fallback title logic
+    let title = quick.replace(result.text, '').trim() || 'New Event';
+
+    setQuickBusy(true);
+    try {
+      await api.post('/calendar/events', { title, start_at: start_at.toISOString(), end_at: end_at.toISOString() });
+      setQuick('');
+      load();
+    } catch (err) { setError(err.message); } finally { setQuickBusy(false); }
   };
+
+  const onDragStart = (e, item, type) => {
+    e.dataTransfer.effectAllowed = 'move';
+    if (type === 'event' || (type === 'task' && item.start_date)) {
+      const st = type === 'event' ? item.start_at : item.start_date;
+      const en = type === 'event' ? item.end_at : item.deadline;
+      e.dataTransfer.setData('text/plain', JSON.stringify({
+        type, id: item.id,
+        ms: new Date(en) - new Date(st),
+        h: new Date(st).getHours(),
+        m: new Date(st).getMinutes()
+      }));
+    } else if (type === 'task') {
+      // unscheduled task dragging
+      e.dataTransfer.setData('text/plain', JSON.stringify({
+        type, id: item.id, ms: 60 * 60 * 1000, h: 10, m: 0
+      }));
+    }
+  };
+
   const drop = async (e, day, hour) => {
     e.preventDefault();
     let payload; try { payload = JSON.parse(e.dataTransfer.getData('text/plain')); } catch { return; }
     if (!payload?.id) return;
 
     const start = new Date(day);
-    // In month view the time of day is kept; in a time grid the slot decides it.
     if (hour == null) start.setHours(payload.h, payload.m, 0, 0);
     else start.setHours(hour, 0, 0, 0);
     const end = new Date(start.getTime() + payload.ms);
 
     try {
-      await api.patch(`/calendar/events/${payload.id}`,
-        { start_at: start.toISOString(), end_at: end.toISOString() });
+      if (payload.type === 'event') {
+        await api.patch(`/calendar/events/${payload.id}`,
+          { start_at: start.toISOString(), end_at: end.toISOString() });
+      } else if (payload.type === 'task') {
+        await api.patch(`/tasks/${payload.id}`,
+          { start_date: start.toISOString(), deadline: end.toISOString() });
+      }
       load();
     } catch (err) { setError(err.message); }
   };
   const allowDrop = e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
 
+  const getBucketStyle = (bucket_id, isTask = false) => {
+    if (!bucket_id) return {};
+    const b = buckets.find(x => x.id === bucket_id);
+    if (!b) return {};
+    const col = bucketColor(b);
+    return isTask
+      ? { borderColor: col, borderLeftWidth: 4, background: `color-mix(in srgb, ${col} 15%, var(--surface))` }
+      : { background: col, borderColor: col, color: 'var(--accent-ink)' };
+  };
+
   const eventsOn = day => data.events.filter(ev => sameDay(ev.start_at, day));
-  const tasksOn = day => data.tasks.filter(t => sameDay(t.deadline, day));
+  
+  // Time-blocked tasks that act like events
+  const tasksOn = day => data.tasks
+    .filter(t => t.start_date && t.deadline && sameDay(t.start_date, day))
+    .map(t => ({ ...t, isTask: true, start_at: t.start_date, end_at: t.deadline }));
+
+  // Tasks that just have a deadline (due date markers)
+  const dueTasksOn = day => data.tasks.filter(t => !t.start_date && t.deadline && sameDay(t.deadline, day));
+
+  // Completely unscheduled tasks for the sidebar
+  const unscheduledTasks = data.tasks.filter(t => !t.start_date);
 
   const label = view === 'month'
     ? startOfMonth(anchor).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
@@ -86,8 +147,13 @@ export default function Calendar() {
     <>
       <div className="head">
         <h1>Calendar</h1>
-        <p>Your meetings, with task deadlines marked alongside. Drag an event to reschedule it.</p>
+        <p>Your meetings and time-blocked tasks. Type naturally to quickly add an event.</p>
       </div>
+
+      <form className="quick" onSubmit={quickAdd}>
+        <input placeholder="e.g. Sync meeting tomorrow at 3pm" value={quick} onChange={e => setQuick(e.target.value)} disabled={quickBusy} />
+        <button className="btn primary" disabled={!quick.trim() || quickBusy}>Add</button>
+      </form>
 
       <div className="calbar">
         <button className="btn sm" onClick={() => step(-1)} aria-label="Previous"><ChevronLeft size={16} /></button>
@@ -108,82 +174,114 @@ export default function Calendar() {
       {error && <div className="err">{error}</div>}
       {loading && <div className="muted" style={{ marginBottom: 8 }}>Loading…</div>}
 
-      {view === 'month' ? (
-        <div className="month">
-          {DAY_NAMES.map(d => <div key={d} className="monthhead">{d}</div>)}
-          {Array.from({ length: days }, (_, i) => addDays(from, i)).map(day => {
-            const outside = day.getMonth() !== startOfMonth(anchor).getMonth();
-            return (
-              <div key={+day} className={'mcell' + (outside ? ' out' : '') + (isToday(day) ? ' today' : '')}
-                   onDragOver={allowDrop} onDrop={e => drop(e, day, null)}
-                   onDoubleClick={() => openNew(day)}>
-                <div className="mnum">{day.getDate()}</div>
-                {tasksOn(day).map(t => (
-                  <div key={t.id} className={'tmark' + (t.priority === 'SOS' ? ' sos' : '')} title={`Task deadline: ${t.title}`}>
-                    ● {t.title}
-                  </div>
-                ))}
-                {eventsOn(day).map(ev => (
-                  <button key={ev.id} className="mchip" draggable
-                          onDragStart={e => onDragStart(e, ev)}
-                          onClick={() => setDrawer(ev)}>
-                    <b>{fmtTime(ev.start_at)}</b> {ev.title}
-                  </button>
-                ))}
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="grid">
-          <div className="gutter">
-            <div className="ghead" />
-            {HOURS.map(h => <div key={h} className="ghour">{h}:00</div>)}
-          </div>
-          {Array.from({ length: days }, (_, i) => addDays(from, i)).map(day => {
-            const laid = layOut(eventsOn(day));
-            return (
-              <div key={+day} className={'gcol' + (isToday(day) ? ' today' : '')}>
-                <div className="ghead">
-                  <span>{DAY_NAMES[(day.getDay() + 6) % 7]}</span>
-                  <b>{day.getDate()}</b>
-                  {tasksOn(day).map(t => (
-                    <div key={t.id} className={'tmark' + (t.priority === 'SOS' ? ' sos' : '')} title={`Task deadline: ${t.title}`}>
-                      ● {t.title}
-                    </div>
-                  ))}
-                </div>
-                <div className="gbody" style={{ height: HOURS.length * HOUR_PX }}>
-                  {HOURS.map(h => (
-                    <div key={h} className="gslot" style={{ height: HOUR_PX }}
-                         onDragOver={allowDrop} onDrop={e => drop(e, day, h)}
-                         onDoubleClick={() => openNew(day, h)} />
-                  ))}
-                  {laid.map(ev => {
-                    const top = Math.max(0, (hourOf(ev.start_at) - DAY_START) * HOUR_PX);
-                    const bottom = Math.min(HOURS.length * HOUR_PX, (hourOf(ev.end_at) - DAY_START) * HOUR_PX);
-                    const width = 100 / (ev.lanes || 1);
-                    return (
-                      <button key={ev.id} className="gevent" draggable
-                              onDragStart={e => onDragStart(e, ev)}
-                              onClick={() => setDrawer(ev)}
-                              style={{ top, height: Math.max(24, bottom - top),
-                                       left: `${ev.lane * width}%`, width: `calc(${width}% - 3px)` }}>
-                        <b>{ev.title}</b>
-                        <span>{fmtRange(ev.start_at, ev.end_at)}</span>
+      <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {view === 'month' ? (
+            <div className="month">
+              {DAY_NAMES.map(d => <div key={d} className="monthhead">{d}</div>)}
+              {Array.from({ length: days }, (_, i) => addDays(from, i)).map(day => {
+                const outside = day.getMonth() !== startOfMonth(anchor).getMonth();
+                return (
+                  <div key={+day} className={'mcell' + (outside ? ' out' : '') + (isToday(day) ? ' today' : '')}
+                       onDragOver={allowDrop} onDrop={e => drop(e, day, null)}
+                       onDoubleClick={() => openNew(day)}>
+                    <div className="mnum">{day.getDate()}</div>
+                    {dueTasksOn(day).map(t => (
+                      <div key={t.id} className={'tmark' + (t.priority === 'SOS' ? ' sos' : '')} title={`Due: ${t.title}`}>
+                        ● {t.title}
+                      </div>
+                    ))}
+                    {[...eventsOn(day), ...tasksOn(day)].sort((a,b)=>new Date(a.start_at)-new Date(b.start_at)).map(ev => (
+                      <button key={ev.id} className="mchip" draggable
+                              style={getBucketStyle(ev.bucket_id, ev.isTask)}
+                              onDragStart={e => onDragStart(e, ev, ev.isTask ? 'task' : 'event')}
+                              onClick={() => !ev.isTask && setDrawer(ev)}>
+                        <b>{fmtTime(ev.start_at)}</b> {ev.title}
                       </button>
-                    );
-                  })}
-                </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="grid">
+              <div className="gutter">
+                <div className="ghead" />
+                {HOURS.map(h => <div key={h} className="ghour">{h}:00</div>)}
               </div>
-            );
-          })}
+              {Array.from({ length: days }, (_, i) => addDays(from, i)).map(day => {
+                const laid = layOut([...eventsOn(day), ...tasksOn(day)]);
+                return (
+                  <div key={+day} className={'gcol' + (isToday(day) ? ' today' : '')}>
+                    <div className="ghead">
+                      <span>{DAY_NAMES[(day.getDay() + 6) % 7]}</span>
+                      <b>{day.getDate()}</b>
+                      {dueTasksOn(day).map(t => (
+                        <div key={t.id} className={'tmark' + (t.priority === 'SOS' ? ' sos' : '')} title={`Due: ${t.title}`}>
+                          ● {t.title}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="gbody" style={{ height: HOURS.length * HOUR_PX }}>
+                      {HOURS.map(h => (
+                        <div key={h} className="gslot" style={{ height: HOUR_PX }}
+                             onDragOver={allowDrop} onDrop={e => drop(e, day, h)}
+                             onDoubleClick={() => openNew(day, h)} />
+                      ))}
+                      {laid.map(ev => {
+                        const top = Math.max(0, (hourOf(ev.start_at) - DAY_START) * HOUR_PX);
+                        const bottom = Math.min(HOURS.length * HOUR_PX, (hourOf(ev.end_at) - DAY_START) * HOUR_PX);
+                        const width = 100 / (ev.lanes || 1);
+                        return (
+                          <button key={ev.id} className="gevent" draggable
+                                  style={{
+                                    top, height: Math.max(24, bottom - top),
+                                    left: `${ev.lane * width}%`, width: `calc(${width}% - 3px)`,
+                                    ...getBucketStyle(ev.bucket_id, ev.isTask)
+                                  }}
+                                  onDragStart={e => onDragStart(e, ev, ev.isTask ? 'task' : 'event')}
+                                  onClick={() => !ev.isTask && setDrawer(ev)}>
+                            <b>{ev.title}</b>
+                            <span>{fmtRange(ev.start_at, ev.end_at)}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
-      )}
 
-      <p className="muted" style={{ marginTop: 10 }}>
-        Double-click empty space to create an event · drag an event to reschedule (snaps to the hour)
-      </p>
+        <div className="bcol" style={{ flex: '0 0 240px', maxHeight: 'calc(100vh - 180px)' }}>
+          <header>
+            <i style={{ background: 'var(--border-2)' }} />
+            <span>Unscheduled Tasks</span>
+            <b>{unscheduledTasks.length}</b>
+          </header>
+          <div className="bcards">
+            {unscheduledTasks.length === 0 ? (
+              <p className="bempty">No unscheduled tasks found.</p>
+            ) : (
+              unscheduledTasks.map(t => (
+                <article key={t.id} draggable onDragStart={e => onDragStart(e, t, 'task')}>
+                  <div className="ctitle">{t.title}</div>
+                  <div className="rmeta" style={{ marginTop: 6, gap: 6 }}>
+                    {t.priority === 'SOS' && <span className="tag hot">SOS</span>}
+                    {t.bucket_id && buckets.find(b => b.id === t.bucket_id) && (
+                      <span className="tag" style={{ color: bucketColor(buckets.find(b => b.id === t.bucket_id)) }}>
+                        <i className="dot" style={{ background: 'currentColor' }} />
+                        {buckets.find(b => b.id === t.bucket_id).name}
+                      </span>
+                    )}
+                  </div>
+                </article>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
 
       {drawer && <EventDrawer event={drawer} onClose={() => setDrawer(null)} onChanged={load} />}
     </>

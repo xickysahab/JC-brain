@@ -16,16 +16,21 @@ r.get('/', async (req, res) => {
     many(`select * from events
            where user_id = $1 and start_at < $3 and end_at > $2
            order by start_at`, [req.user.id, from, to]),
-    many(`select id, title, deadline, priority, status, client
+    many(`select id, title, deadline, start_date, bucket_id, priority, status, client
             from tasks
-           where user_id = $1 and deadline >= $2 and deadline < $3
+           where user_id = $1
              and status in ('Todo','In Progress')
+             and (
+               (start_date is not null and start_date < $3 and deadline > $2)
+               or (start_date is null and deadline is not null and deadline >= $2 and deadline < $3)
+               or (start_date is null and deadline is null)
+             )
            order by deadline`, [req.user.id, from, to])
   ]);
   res.json({ events, tasks });
 });
 
-const TEXT = ['title', 'location', 'attendees', 'notes'];
+const TEXT = ['title', 'location', 'attendees', 'notes', 'bucket_id'];
 
 /* Same whitelist approach as tasks: unknown keys never reach the SQL. */
 function buildPatch(body, { requireTimes }) {
