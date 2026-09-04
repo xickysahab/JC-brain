@@ -246,7 +246,7 @@ input.chip{width:auto}
   appearance:none;width:17px;height:17px;border:1.5px solid var(--border-2);
   border-radius:4px;margin-top:2px;flex:none;cursor:pointer;
   transition:border-color .15s var(--ease), background .15s var(--ease);
-  background:var(--surface);
+  background:var(--surface);padding:0;box-sizing:border-box;
 }
 .apple-checkbox:hover { 
   border-color:var(--ink-3);
