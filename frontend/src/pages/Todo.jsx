@@ -113,14 +113,22 @@ export default function Todo() {
       <BucketBar store={store} selected={bucketId} onSelect={setBucketId} />
 
       <div className="chips">
-        {MODES.map(m => (
-          <button key={m.id} className={'chip chip-icon' + (mode === m.id ? ' on' : '')}
-                  title={m.label}
-                  onClick={() => { setMode(m.id); setSelected(new Set()); }}>
-            <m.icon size={16} />
-            {m.id === 'triage' && store.unbucketed > 0 ? <b style={{ marginLeft: 6 }}>{store.unbucketed}</b> : null}
-          </button>
-        ))}
+        <div style={{ position: 'relative', display: 'inline-block' }}>
+          {(() => {
+            const activeMode = MODES.find(m => m.id === mode);
+            return activeMode ? <activeMode.icon size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--ink)' }} /> : null;
+          })()}
+          <select className="chip" style={{ paddingLeft: 32, paddingRight: 28, appearance: 'none', border: '1px solid var(--border)', background: 'var(--surface)' }} value={mode} onChange={e => { setMode(e.target.value); setSelected(new Set()); }}>
+            {MODES.map(m => (
+              <option key={m.id} value={m.id}>
+                {m.label} {m.id === 'triage' && store.unbucketed > 0 ? `(${store.unbucketed})` : ''}
+              </option>
+            ))}
+          </select>
+          <svg style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </div>
         <span style={{ width: 10 }} />
         {mode !== 'triage' && VIEWS.map(v => (
           <button key={v.id} className={'chip' + (view === v.id ? ' on' : '')}
