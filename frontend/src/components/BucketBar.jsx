@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { bucketColor } from '../useBuckets.js';
+import { Plus, Settings, Edit2, Trash2, Check } from 'lucide-react';
 
 /* The bucket strip: filter in list mode, and the place buckets are created,
    renamed and deleted. Deleting one never deletes its tasks - they go back to
@@ -42,8 +43,8 @@ export default function BucketBar({ store, selected, onSelect, showCounts = true
           </button>
           {managing && (
             <span className="bmenu">
-              <button title="Rename" onClick={() => doRename(b)}>&#9998;</button>
-              <button title="Delete" className="danger" onClick={() => doRemove(b)}>&times;</button>
+              <button title="Rename" onClick={() => doRename(b)}><Edit2 size={12} /></button>
+              <button title="Delete" className="danger" onClick={() => doRemove(b)}><Trash2 size={12} /></button>
             </span>
           )}
         </span>
@@ -56,7 +57,7 @@ export default function BucketBar({ store, selected, onSelect, showCounts = true
       )}
 
       {adding ? (
-        <form className="badd" onSubmit={submit}>
+        <form className="badd" style={{ marginLeft: 'auto' }} onSubmit={submit}>
           <input autoFocus value={name} maxLength={40} placeholder="Bucket name"
                  onChange={e => setName(e.target.value)}
                  onKeyDown={e => e.key === 'Escape' && setAdding(false)} />
@@ -64,14 +65,16 @@ export default function BucketBar({ store, selected, onSelect, showCounts = true
           <button type="button" className="btn sm" onClick={() => setAdding(false)}>Cancel</button>
         </form>
       ) : (
-        <>
-          <button className="bchip ghost" onClick={() => setAdding(true)}>New bucket</button>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+          <button className="bchip ghost" title="New bucket" onClick={() => setAdding(true)}>
+            <Plus size={16} />
+          </button>
           {buckets.length > 0 && (
-            <button className="bchip ghost" onClick={() => setManaging(m => !m)}>
-              {managing ? 'Done' : 'Manage'}
+            <button className="bchip ghost" title={managing ? 'Done managing' : 'Manage buckets'} onClick={() => setManaging(m => !m)}>
+              {managing ? <Check size={16} /> : <Settings size={16} />}
             </button>
           )}
-        </>
+        </div>
       )}
     </div>
   );

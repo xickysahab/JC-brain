@@ -5,6 +5,7 @@ import {
   startOfDay, addDays, addMonths, startOfWeek, startOfMonth, monthGridStart,
   sameDay, isToday, fmtTime, fmtRange, hourOf, layOut, DAY_NAMES
 } from '../dates.js';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 
 const DAY_START = 6;              // grid runs 06:00 - 23:00
 const DAY_END = 23;
@@ -89,9 +90,9 @@ export default function Calendar() {
       </div>
 
       <div className="calbar">
-        <button className="btn sm" onClick={() => step(-1)} aria-label="Previous">&larr;</button>
+        <button className="btn sm" onClick={() => step(-1)} aria-label="Previous"><ChevronLeft size={16} /></button>
         <button className="btn sm" onClick={() => setAnchor(startOfDay(new Date()))}>Today</button>
-        <button className="btn sm" onClick={() => step(1)} aria-label="Next">&rarr;</button>
+        <button className="btn sm" onClick={() => step(1)} aria-label="Next"><ChevronRight size={16} /></button>
         <strong className="callabel">{label}</strong>
         <span className="grow" />
         {['month', 'week', 'day'].map(v => (
@@ -99,7 +100,9 @@ export default function Calendar() {
             {v[0].toUpperCase() + v.slice(1)}
           </button>
         ))}
-        <button className="btn sm primary" onClick={() => openNew(anchor)}>New event</button>
+        <button className="btn sm primary" onClick={() => openNew(anchor)}>
+          <Plus size={16} /> New event
+        </button>
       </div>
 
       {error && <div className="err">{error}</div>}

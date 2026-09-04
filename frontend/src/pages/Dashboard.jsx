@@ -4,6 +4,7 @@ import Canvas from '../components/canvas/Canvas.jsx';
 import WidgetSettings from '../components/canvas/WidgetSettings.jsx';
 import { useHistory } from '../useHistory.js';
 import { WIDGETS, widgetDef } from '../widgets/index.jsx';
+import { Save, X, Undo2, Redo2, Plus, RotateCcw, PenTool } from 'lucide-react';
 
 const BREAKPOINT = 'desktop';   // the mobile layout gets its own editor in P5
 
@@ -110,22 +111,34 @@ export default function Dashboard() {
         {editing ? (
           <>
             <button className="btn primary" onClick={save} disabled={status === 'saving'}>
-              {status === 'saving' ? 'Saving…' : 'Save'}
+              <Save size={16} /> {status === 'saving' ? 'Saving…' : 'Save'}
             </button>
-            <button className="btn" onClick={cancel}>Cancel</button>
+            <button className="btn" onClick={cancel}>
+              <X size={16} /> Cancel
+            </button>
             <span className="sep" />
-            <button className="btn" onClick={() => setPicking(p => !p)} aria-expanded={picking}>Add widget</button>
-            <button className="btn" onClick={undo} disabled={!canUndo} title="⌘Z">Undo</button>
-            <button className="btn" onClick={redo} disabled={!canRedo} title="⇧⌘Z">Redo</button>
+            <button className="btn" onClick={() => setPicking(p => !p)} aria-expanded={picking}>
+              <Plus size={16} /> Add widget
+            </button>
+            <button className="btn" onClick={undo} disabled={!canUndo} title="⌘Z">
+              <Undo2 size={16} />
+            </button>
+            <button className="btn" onClick={redo} disabled={!canRedo} title="⇧⌘Z">
+              <Redo2 size={16} />
+            </button>
             <label className="snap">
               <input type="checkbox" checked={snap} onChange={e => setSnap(e.target.checked)} /> Snap
             </label>
             <span className="grow" />
-            <button className="btn danger" onClick={resetLayout}>Reset to default</button>
+            <button className="btn danger" onClick={resetLayout}>
+              <RotateCcw size={16} /> Reset
+            </button>
           </>
         ) : (
           <>
-            <button className="btn primary" onClick={() => setEditing(true)}>Edit layout</button>
+            <button className="btn primary" onClick={() => setEditing(true)}>
+              <PenTool size={16} /> Edit layout
+            </button>
             <span className="muted">{widgets.length} widget{widgets.length === 1 ? '' : 's'}</span>
           </>
         )}

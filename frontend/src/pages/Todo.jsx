@@ -6,20 +6,21 @@ import Triage from '../components/Triage.jsx';
 import Board from '../components/Board.jsx';
 import { useBuckets, bucketColor } from '../useBuckets.js';
 import { useTaskFields } from '../useTaskFields.js';
+import { Plus, Info, Check, List, Kanban, Filter, Calendar1, CalendarDays, AlertCircle, CircleDashed, CheckCircle, Search, Trash2 } from 'lucide-react';
 
 const VIEWS = [
-  { id: 'open',     label: 'Open' },
-  { id: 'today',    label: 'Today' },
-  { id: 'overdue',  label: 'Overdue' },
-  { id: 'week',     label: 'This week' },
-  { id: 'sos',      label: 'SOS' },
-  { id: 'progress', label: 'In progress' },
-  { id: 'done',     label: 'Done' }
+  { id: 'open',     label: 'Open', icon: CircleDashed },
+  { id: 'today',    label: 'Today', icon: Calendar1 },
+  { id: 'overdue',  label: 'Overdue', icon: AlertCircle },
+  { id: 'week',     label: 'This week', icon: CalendarDays },
+  { id: 'sos',      label: 'SOS', icon: AlertCircle },
+  { id: 'progress', label: 'In progress', icon: CircleDashed },
+  { id: 'done',     label: 'Done', icon: CheckCircle }
 ];
 const MODES = [
-  { id: 'list',   label: 'List' },
-  { id: 'board',  label: 'Board' },
-  { id: 'triage', label: 'Sort' }
+  { id: 'list',   label: 'List view', icon: List },
+  { id: 'board',  label: 'Board view', icon: Kanban },
+  { id: 'triage', label: 'Triage / Sort', icon: Filter }
 ];
 const EMPTY = {
   open:     ['Nothing open', 'Type above and press Add to capture something.'],
@@ -104,26 +105,37 @@ export default function Todo() {
       <form className="quick" onSubmit={add}>
         <input value={title} onChange={e => setTitle(e.target.value)}
                placeholder="What needs doing?" aria-label="New task" />
-        <button className="btn primary" disabled={!title.trim()}>Add</button>
+        <button className="btn primary" disabled={!title.trim()}>
+          <Plus size={16} /> Add
+        </button>
       </form>
 
       <BucketBar store={store} selected={bucketId} onSelect={setBucketId} />
 
       <div className="chips">
         {MODES.map(m => (
-          <button key={m.id} className={'chip' + (mode === m.id ? ' on' : '')}
+          <button key={m.id} className={'chip chip-icon' + (mode === m.id ? ' on' : '')}
+                  title={m.label}
                   onClick={() => { setMode(m.id); setSelected(new Set()); }}>
-            {m.label}{m.id === 'triage' && store.unbucketed > 0 ? ` (${store.unbucketed})` : ''}
+            <m.icon size={16} />
+            {m.id === 'triage' && store.unbucketed > 0 ? <b style={{ marginLeft: 6 }}>{store.unbucketed}</b> : null}
           </button>
         ))}
         <span style={{ width: 10 }} />
         {mode !== 'triage' && VIEWS.map(v => (
           <button key={v.id} className={'chip' + (view === v.id ? ' on' : '')}
-                  onClick={() => { setView(v.id); setSelected(new Set()); }}>{v.label}</button>
+                  title={v.label}
+                  onClick={() => { setView(v.id); setSelected(new Set()); }}>
+            <v.icon size={14} style={{ marginRight: 4 }} />
+            {v.label}
+          </button>
         ))}
         {mode === 'list' && (
-          <input className="chip" style={{ minWidth: 170 }} type="search" value={q}
-                 onChange={e => setQ(e.target.value)} placeholder="Search…" aria-label="Search tasks" />
+          <div style={{ position: 'relative', display: 'inline-block' }}>
+            <Search size={14} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-3)' }} />
+            <input className="chip" style={{ minWidth: 170, paddingLeft: 36, paddingRight: 14 }} type="search" value={q}
+                   onChange={e => setQ(e.target.value)} placeholder="Search tasks…" aria-label="Search tasks" />
+          </div>
         )}
       </div>
 
@@ -132,14 +144,29 @@ export default function Todo() {
       {selected.size > 0 && mode === 'list' && (
         <div className="bulk">
           <strong>{selected.size} selected</strong>
-          {store.buckets.map(b => (
-            <button key={b.id} className="btn sm" onClick={() => bulk({ patch: { bucket_id: b.id } })}>
-              Move to {b.name}
-            </button>
-          ))}
-          <button className="btn sm" onClick={() => bulk({ patch: { status: 'Done' } })}>Mark done</button>
-          <button className="btn sm danger" onClick={() => bulk({ action: 'delete' })}>Delete</button>
-          <button className="btn sm" onClick={() => setSelected(new Set())}>Clear</button>
+          <select className="chip" style={{ height: 30, margin: 0, border: '1px solid var(--accent-line)', background: 'var(--surface)' }} onChange={e => {
+            if (e.target.value) {
+              bulk({ patch: { bucket_id: e.target.value } });
+              e.target.value = '';
+            }
+          }}>
+            <option value="">Move to bucket…</option>
+            {store.buckets.map(b => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+          
+          <span style={{ width: 1, height: 16, background: 'var(--accent-line)', margin: '0 4px' }} />
+
+          <button className="btn sm" onClick={() => bulk({ patch: { status: 'Done' } })}>
+            <CheckCircle size={14} /> Mark done
+          </button>
+          <button className="btn sm danger" onClick={() => bulk({ action: 'delete' })}>
+            <Trash2 size={14} /> Delete
+          </button>
+          <button className="btn sm ghost" onClick={() => setSelected(new Set())}>
+            Clear
+          </button>
         </div>
       )}
 
@@ -170,9 +197,13 @@ export default function Todo() {
                 </div>
               </div>
               {!closed && <span className="score" title="attention score">{t.score}</span>}
-              <button className="btn sm ibtn" title="Details" aria-label={`Open ${t.title}`}
-                      onClick={() => setModal(t)}>i</button>
-              <button className="btn sm" onClick={() => toggleDone(t)}>{closed ? 'Reopen' : 'Done'}</button>
+              <button className="btn sm" title="Details" aria-label={`Open ${t.title}`}
+                      onClick={() => setModal(t)}>
+                <Info size={16} />
+              </button>
+              <button className="btn sm" onClick={() => toggleDone(t)}>
+                <Check size={16} /> {closed ? 'Reopen' : 'Done'}
+              </button>
             </div>
           );
         })}
