@@ -102,6 +102,7 @@ export default function Calendar() {
 
   const drop = async (e, day, hour) => {
     e.preventDefault();
+    e.stopPropagation(); // prevent triggering the sidebar drop if it's inside
     let payload; try { payload = JSON.parse(e.dataTransfer.getData('text/plain')); } catch { return; }
     if (!payload?.id) return;
 
@@ -121,6 +122,18 @@ export default function Calendar() {
       load();
     } catch (err) { setError(err.message); }
   };
+  
+  const dropUnschedule = async e => {
+    e.preventDefault();
+    let payload; try { payload = JSON.parse(e.dataTransfer.getData('text/plain')); } catch { return; }
+    if (!payload?.id || payload.type !== 'task') return;
+
+    try {
+      await api.patch(`/tasks/${payload.id}`, { start_date: null, deadline: null });
+      load();
+    } catch (err) { setError(err.message); }
+  };
+
   const allowDrop = e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
 
   const getBucketStyle = (bucket_id, isTask = false) => {
@@ -263,7 +276,8 @@ export default function Calendar() {
           )}
         </div>
 
-        <div className="bcol" style={{ flex: '0 0 240px', maxHeight: 'calc(100vh - 180px)' }}>
+        <div className="bcol" style={{ flex: '0 0 240px', maxHeight: 'calc(100vh - 180px)' }}
+             onDragOver={allowDrop} onDrop={dropUnschedule}>
           <header>
             <i style={{ background: 'var(--border-2)' }} />
             <span>Unscheduled Tasks</span>
