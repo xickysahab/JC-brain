@@ -130,14 +130,19 @@ export default function Todo() {
           </svg>
         </div>
         <span style={{ width: 10 }} />
-        {mode !== 'triage' && VIEWS.map(v => (
-          <button key={v.id} className={'chip' + (view === v.id ? ' on' : '')}
-                  title={v.label}
-                  onClick={() => { setView(v.id); setSelected(new Set()); }}>
-            <v.icon size={14} style={{ marginRight: 4 }} />
-            {v.label}
-          </button>
-        ))}
+        {mode !== 'triage' && (
+          <div style={{ position: 'relative', display: 'inline-block', marginRight: 6 }}>
+            <Filter size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--ink-2)' }} />
+            <select className="chip" style={{ paddingLeft: 32, paddingRight: 28, appearance: 'none', border: '1px solid var(--border)', background: 'var(--surface)' }} value={view} onChange={e => { setView(e.target.value); setSelected(new Set()); }}>
+              {VIEWS.map(v => (
+                <option key={v.id} value={v.id}>{v.label}</option>
+              ))}
+            </select>
+            <svg style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+        )}
         {mode === 'list' && (
           <div style={{ position: 'relative', display: 'inline-block' }}>
             <Search size={14} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink-3)' }} />
