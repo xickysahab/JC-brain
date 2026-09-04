@@ -1,25 +1,23 @@
-import { useState, useEffect } from 'react';
-import DialogModal from './DialogModal.jsx';
+import { useState } from 'react';
+import ScrollPicker from './ScrollPicker.jsx';
 
 const HOURS = ['12', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11'];
 const MINS = ['00', '15', '30', '45'];
+const AMPMS = ['AM', 'PM'];
 
-function TimeSelect({ label, time, setTime }) {
+const hourItems = HOURS.map(h => ({ value: h, label: h }));
+const minItems = MINS.map(m => ({ value: m, label: m }));
+const ampmItems = AMPMS.map(a => ({ value: a, label: a }));
+
+function TimeDrum({ label, time, setTime }) {
   return (
     <div className="tprompt-block">
       <label>{label}</label>
-      <div className="tprompt-inputs">
-        <select value={time.h} onChange={e => setTime({ ...time, h: e.target.value })}>
-          {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
-        </select>
-        <span>:</span>
-        <select value={time.m} onChange={e => setTime({ ...time, m: e.target.value })}>
-          {MINS.map(m => <option key={m} value={m}>{m}</option>)}
-        </select>
-        <select value={time.ampm} onChange={e => setTime({ ...time, ampm: e.target.value })}>
-          <option value="AM">AM</option>
-          <option value="PM">PM</option>
-        </select>
+      <div className="tprompt-drums">
+        <ScrollPicker items={hourItems} value={time.h} onChange={v => setTime({ ...time, h: v })} />
+        <span className="drum-colon">:</span>
+        <ScrollPicker items={minItems} value={time.m} onChange={v => setTime({ ...time, m: v })} />
+        <ScrollPicker items={ampmItems} value={time.ampm} onChange={v => setTime({ ...time, ampm: v })} />
       </div>
     </div>
   );
@@ -38,7 +36,6 @@ export default function TimePromptModal({ day, defaultHour, defaultMin, onClose,
     ampm: isPM ? 'PM' : 'AM'
   });
 
-  // Default end is 1 hour after start
   const endHour = dHour + 1;
   const eIsPM = (endHour % 24) >= 12 && (endHour % 24) < 24;
   const eH12 = endHour % 12 || 12;
@@ -65,7 +62,6 @@ export default function TimePromptModal({ day, defaultHour, defaultMin, onClose,
     const eDate = new Date(day);
     eDate.setHours(eH, parseInt(end.m, 10), 0, 0);
     
-    // If end is before start, assume it goes to next day (or just error out)
     if (eDate <= sDate) {
       eDate.setDate(eDate.getDate() + 1);
     }
@@ -83,9 +79,9 @@ export default function TimePromptModal({ day, defaultHour, defaultMin, onClose,
         </div>
         
         <div className="tprompt-body">
-          <TimeSelect label="STARTS AT" time={start} setTime={setStart} />
+          <TimeDrum label="STARTS AT" time={start} setTime={setStart} />
           <div className="tprompt-div" />
-          <TimeSelect label="ENDS AT" time={end} setTime={setEnd} />
+          <TimeDrum label="ENDS AT" time={end} setTime={setEnd} />
         </div>
 
         <div className="tprompt-foot">
