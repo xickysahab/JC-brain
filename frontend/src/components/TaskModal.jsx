@@ -37,7 +37,15 @@ export default function TaskModal({ task, buckets, fields, visible, onClose, onS
     e.preventDefault();
     if (!String(draft.title || '').trim()) { setError('A title is required'); return; }
     setBusy(true); setError('');
+    
     const body = { title: draft.title.trim() };
+    
+    // Always preserve system fields or auto-populated fields if they exist
+    const ALWAYS_SAVE = ['status', 'bucket_id', 'start_date', 'deadline'];
+    for (const key of ALWAYS_SAVE) {
+      if (draft[key] !== undefined) body[key] = draft[key];
+    }
+    
     for (const f of shown) body[f.key] = draft[f.key] ?? null;
     try {
       if (isNew) await api.post('/tasks', body);

@@ -7,6 +7,7 @@ import Board from '../components/Board.jsx';
 import { useBuckets, bucketColor } from '../useBuckets.js';
 import { useTaskFields } from '../useTaskFields.js';
 import { Plus, Info, Check, List, Kanban, Filter, Calendar1, CalendarDays, AlertCircle, CircleDashed, CheckCircle, Search, Trash2 } from 'lucide-react';
+import * as chrono from 'chrono-node';
 
 const VIEWS = [
   { id: 'open',     label: 'Open', icon: CircleDashed },
@@ -68,8 +69,33 @@ export default function Todo() {
   const add = e => {
     e.preventDefault();
     if (!title.trim()) return;
-    setModal({ title: title.trim(), status: 'Todo',
-               bucket_id: bucketId && bucketId !== 'none' ? bucketId : null });
+
+    let draftTitle = title.trim();
+    let draftStart = null;
+    let draftDeadline = null;
+
+    const parsingText = title.replace(/\bon\s+(\d{1,2})(?:st|nd|rd|th)?\b/gi, 'on the $1 of this month');
+    const parsed = chrono.parse(parsingText, new Date(), { forwardDate: true });
+    
+    if (parsed.length > 0) {
+      const result = parsed[0];
+      if (result.start.isCertain('hour')) {
+        draftStart = result.start.date().toISOString();
+        draftDeadline = new Date(result.start.date().getTime() + 60 * 60 * 1000).toISOString();
+      } else {
+        draftDeadline = result.start.date().toISOString();
+      }
+      draftTitle = parsingText.replace(result.text, '').trim();
+      draftTitle = draftTitle.replace(/of this month/gi, '').trim() || 'New Task';
+    }
+
+    setModal({ 
+      title: draftTitle, 
+      status: 'Todo',
+      bucket_id: bucketId && bucketId !== 'none' ? bucketId : null,
+      start_date: draftStart,
+      deadline: draftDeadline
+    });
     setTitle('');
   };
 
