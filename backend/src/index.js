@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
+import { parseOrigins, isAllowed } from './allowed-origin.js';
 import { requireAuth, requireAdmin } from './auth.js';
 import authRoutes from './routes/auth.js';
 import taskRoutes from './routes/tasks.js';
@@ -14,21 +15,21 @@ const app = express();
 // request is http and refuses to set the Secure session cookie.
 app.set('trust proxy', 1);
 
-/* Only the origins listed in CORS_ORIGINS may call this API with credentials.
-   Leave it empty when the frontend proxies /api through its own domain - then
-   nothing is cross-origin and no allowlist is needed. */
-const origins = (process.env.CORS_ORIGINS || '')
-  .split(',').map(s => s.trim()).filter(Boolean);
+/* Origins allowed to call this API with credentials. Trailing slashes are
+   trimmed because "https://app.vercel.app/" and "https://app.vercel.app" are
+   the same origin to a browser but not to a string compare. */
+const origins = parseOrigins(process.env.CORS_ORIGINS);
 
-if (origins.length) {
-  app.use(cors({
-    credentials: true,
-    origin(origin, cb) {
-      if (!origin || origins.includes(origin)) return cb(null, true);
-      cb(new Error(`Origin ${origin} is not allowed`));
-    }
-  }));
-}
+app.use(cors({
+  credentials: true,
+  origin(origin, cb) {
+    // An unlisted origin gets no CORS headers, and the browser enforces the
+    // rest. Never reject the request itself: calls proxied through the
+    // frontend's own domain are same-origin to the browser, and a server-side
+    // 403 here would break them no matter what the allowlist says.
+    cb(null, isAllowed(origin, origins));
+  }
+}));
 
 app.use(express.json({ limit: '256kb' }));
 app.use(cookieParser());
@@ -44,7 +45,6 @@ app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 // Never leak a stack trace to the browser; log it here instead.
 app.use((err, req, res, _next) => {
   console.error(err);
-  if (err?.message?.startsWith('Origin ')) return res.status(403).json({ error: 'Origin not allowed' });
   res.status(500).json({ error: 'Something went wrong on the server' });
 });
 
