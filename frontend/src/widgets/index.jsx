@@ -7,6 +7,10 @@ import MiniCalendar from './MiniCalendar.jsx';
 import Progress from './Progress.jsx';
 import QuickAdd from './QuickAdd.jsx';
 import Placeholder from './Placeholder.jsx';
+import Weather from './Weather.jsx';
+import Quote from './Quote.jsx';
+import Shortcuts from './Shortcuts.jsx';
+import Pomodoro from './Pomodoro.jsx';
 
 /* One registry the canvas renders from. A type the canvas does not know yet
    falls back to a placeholder rather than breaking the whole dashboard, which
@@ -16,10 +20,10 @@ import Placeholder from './Placeholder.jsx';
    adding a dimension to the API and a line here is the whole change. */
 export const WIDGETS = {
   clock: {
-    label: 'Date & time', size: { w: 300, h: 120 }, Component: Clock
+    label: 'Date & time', size: { w: 300, h: 140 }, Component: Clock
   },
   counter: {
-    label: 'Number card', size: { w: 300, h: 120 }, Component: Counter,
+    label: 'Number card', size: { w: 300, h: 140 }, Component: Counter,
     settings: [{ key: 'metric', label: 'Show', options: [
       ['open', 'Open'], ['overdue', 'Overdue'], ['today', 'Due today'], ['sos', 'SOS']] }]
   },
@@ -46,15 +50,30 @@ export const WIDGETS = {
     ]
   },
   progress: {
-    label: 'Progress', size: { w: 320, h: 160 }, Component: Progress,
+    label: 'Progress', size: { w: 320, h: 180 }, Component: Progress,
     settings: [
       { key: 'target', label: 'Target', type: 'text' },
       { key: 'title', label: 'Label', type: 'text' }
     ]
   },
+  weather: {
+    label: 'Weather', size: { w: 300, h: 180 }, Component: Weather,
+    settings: [
+      { key: 'location', label: 'City', type: 'text' }
+    ]
+  },
+  pomodoro: {
+    label: 'Focus timer', size: { w: 280, h: 220 }, Component: Pomodoro
+  },
+  quote: {
+    label: 'Daily quote', size: { w: 380, h: 180 }, Component: Quote
+  },
+  shortcuts: {
+    label: 'Shortcuts', size: { w: 300, h: 260 }, Component: Shortcuts
+  },
   calendar: { label: 'Mini calendar', size: { w: 340, h: 300 }, Component: MiniCalendar },
-  quickadd: { label: 'Quick add', size: { w: 420, h: 110 }, Component: QuickAdd },
-  note:     { label: 'Sticky note', size: { w: 300, h: 200 }, Component: Note }
+  quickadd: { label: 'Quick add', size: { w: 420, h: 130 }, Component: QuickAdd },
+  note:     { label: 'Sticky note', size: { w: 300, h: 220 }, Component: Note }
 };
 
 export const widgetDef = type => WIDGETS[type] || { label: type, size: { w: 300, h: 200 }, Component: Placeholder, soon: true };
