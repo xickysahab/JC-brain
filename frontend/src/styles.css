@@ -221,40 +221,59 @@ select{appearance:none;padding-right:30px;cursor:pointer;
 input.chip{width:auto}
 
 /* ---------- capture ---------- */
-.quick{display:flex;gap:9px;margin-bottom:18px}
+.quick{display:flex;gap:9px;margin-bottom:24px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-2)}
 .quick input{
-  flex:1;height:46px;font-size:15.5px;padding:0 16px;border-radius:var(--r);
-  background:var(--surface);border-color:var(--border);
+  flex:1;height:40px;font-size:16px;padding:0 8px;border:none;
+  background:transparent;color:var(--ink);
 }
-.quick .btn{height:46px;padding:0 22px;font-size:14.5px}
+.quick input::placeholder{color:var(--ink-3)}
+.quick input:focus{outline:none;box-shadow:none}
+.quick .btn{height:34px;padding:0 16px;font-size:13.5px;border-radius:var(--r-pill)}
 
 /* ---------- rows ---------- */
 .row{
-  display:flex;align-items:flex-start;gap:12px;padding:13px 15px;margin-bottom:7px;
-  border:1px solid var(--border);border-radius:var(--r);background:var(--surface);
-  transition:border-color .14s var(--ease),background .14s var(--ease);
+  display:flex;align-items:flex-start;gap:14px;padding:14px 10px;
+  border-bottom:1px solid var(--border);
+  transition:background .14s var(--ease);
+  cursor:pointer;
 }
-.row:hover{border-color:var(--border-2);background:var(--surface-2)}
-.row.closed{opacity:.55}
+.row:hover{background:var(--surface-2)}
+.row.closed{opacity:.45}
 .row.closed .rtitle{text-decoration:line-through;color:var(--ink-3)}
-.row input[type=checkbox]{margin-top:2px;flex:none}
-.rmain{flex:1;min-width:0}
-.rtitle{text-align:left;font-size:14.5px;font-weight:500;width:100%;line-height:1.4}
-.rtitle:hover{color:var(--accent)}
-.rmeta{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}
-.tag{
-  display:inline-flex;align-items:center;gap:5px;height:21px;padding:0 8px;
-  font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.04em;
-  border-radius:var(--r-sm);border:1px solid var(--border);color:var(--ink-3);
-  background:var(--surface-2);white-space:nowrap;
+
+/* Custom Apple-like Checkbox */
+.apple-checkbox {
+  appearance:none;width:18px;height:18px;border:1.5px solid var(--border-2);
+  border-radius:50%;margin-top:2px;flex:none;cursor:pointer;
+  transition:border-color .2s, background .2s, box-shadow .2s;
 }
-.tag.hot{border-color:var(--red-line);color:var(--red);background:var(--red-soft);font-weight:600}
-.tag.warn{border-color:var(--amber-line);color:var(--amber);background:var(--amber-soft);font-weight:600}
-.tag.ok{border-color:var(--green-line);color:var(--green);background:var(--green-soft)}
-.tag.pin{border-color:var(--accent-line);color:var(--accent);background:var(--accent-soft)}
-.tag i.dot{width:7px;height:7px;border-radius:50%;flex:none}
-.score{font-family:var(--mono);font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums;
-  flex:none;padding-top:3px}
+.apple-checkbox:hover { border-color:var(--accent); }
+.apple-checkbox:checked {
+  background:var(--accent);border-color:var(--accent);
+  box-shadow:inset 0 0 0 3px var(--bg); /* creates the inner dot effect */
+}
+
+.rmain{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;padding-top:1px}
+.rtitle{text-align:left;font-size:15px;font-weight:400;width:100%;line-height:1.4;padding:0;background:none;border:none;color:var(--ink)}
+.rtitle:hover{color:var(--accent)}
+
+.row-actions {
+  display:flex;align-items:center;gap:6px;opacity:0;
+  transition:opacity .2s var(--ease);
+}
+.row:hover .row-actions { opacity:1; }
+.rmeta{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.tag{
+  display:inline-flex;align-items:center;gap:4px;height:20px;
+  font-family:var(--sans);font-size:12px;font-weight:400;
+  color:var(--ink-3);white-space:nowrap;
+}
+.tag.hot{color:var(--red)}
+.tag.warn{color:var(--amber)}
+.tag.ok{color:var(--green)}
+.tag.pin{color:var(--accent)}
+.tag i.dot{width:7px;height:7px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.1)}
+.score{font-family:var(--mono);font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums;flex:none}
 .ibtn{width:28px;padding:0;font-family:var(--mono);font-style:italic;font-weight:600}
 
 .empty{

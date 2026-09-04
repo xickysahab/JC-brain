@@ -182,11 +182,13 @@ export default function Todo() {
           const closed = t.status === 'Done' || t.status === 'Cancelled';
           const b = store.buckets.find(x => x.id === t.bucket_id);
           return (
-            <div key={t.id} className={'row' + (closed ? ' closed' : '')}>
-              <input type="checkbox" checked={selected.has(t.id)} onChange={() => toggleSel(t.id)}
+            <div key={t.id} className={'row' + (closed ? ' closed' : '')} onClick={() => setModal(t)}>
+              <input type="checkbox" className="apple-checkbox" checked={selected.has(t.id)} 
+                     onClick={e => e.stopPropagation()}
+                     onChange={() => toggleSel(t.id)}
                      aria-label={`Select ${t.title}`} />
               <div className="rmain">
-                <button className="rtitle" onClick={() => setModal(t)}>{t.title}</button>
+                <button className="rtitle" onClick={e => e.preventDefault()}>{t.title}</button>
                 <div className="rmeta">
                   <span className={'tag' + (hot(t.label) ? ' hot' : warn(t.label) ? ' warn' : '')}>{t.label}</span>
                   {b && <span className="tag"><i className="dot" style={{ background: bucketColor(b) }} />{b.name}</span>}
@@ -196,14 +198,12 @@ export default function Todo() {
                   {t.client && <span className="tag">#{t.client}</span>}
                 </div>
               </div>
-              {!closed && <span className="score" title="attention score">{t.score}</span>}
-              <button className="btn sm" title="Details" aria-label={`Open ${t.title}`}
-                      onClick={() => setModal(t)}>
-                <Info size={16} />
-              </button>
-              <button className="btn sm" onClick={() => toggleDone(t)}>
-                <Check size={16} /> {closed ? 'Reopen' : 'Done'}
-              </button>
+              <div className="row-actions" onClick={e => e.stopPropagation()}>
+                {!closed && <span className="score" title="attention score">{t.score}</span>}
+                <button className="btn sm ghost" onClick={() => toggleDone(t)}>
+                  <Check size={14} /> {closed ? 'Reopen' : 'Done'}
+                </button>
+              </div>
             </div>
           );
         })}
