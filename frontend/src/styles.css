@@ -226,6 +226,7 @@ input.chip{width:auto}
   background:var(--surface);border:1px solid var(--border-2);
   border-radius:var(--r-pill);box-shadow:var(--shadow-sm);
   transition:border-color .2s var(--ease), box-shadow .2s var(--ease);
+  max-width: 640px; /* Prevent horizontal stretching on large screens */
 }
 .quick:focus-within{
   border-color:var(--accent);
