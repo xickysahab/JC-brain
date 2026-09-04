@@ -39,8 +39,10 @@ export default function Board({ tasks, buckets, onAssign, onOpen }) {
             <div className="bcards">
               {cards.map(t => (
                 <article key={t.id} draggable
-                         onDragStart={e => e.dataTransfer.setData('text/plain', t.id)}>
-                  <button className="ctitle" onClick={() => onOpen(t.id)}>{t.title}</button>
+                         onDragStart={e => e.dataTransfer.setData('text/plain', t.id)}
+                         onClick={() => onOpen(t.id)}
+                         style={{ cursor: 'pointer' }}>
+                  <div className="ctitle">{t.title}</div>
                   <div className="rmeta">
                     <span className={'tag' + (hot(t.label) ? ' hot' : warn(t.label) ? ' warn' : '')}>{t.label}</span>
                     {t.owner && <span className="tag">@{t.owner}</span>}
