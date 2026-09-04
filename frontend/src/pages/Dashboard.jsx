@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api.js';
 import Canvas from '../components/canvas/Canvas.jsx';
+import WidgetSettings from '../components/canvas/WidgetSettings.jsx';
 import { useHistory } from '../useHistory.js';
 import { WIDGETS, widgetDef } from '../widgets/index.jsx';
 
@@ -15,7 +16,12 @@ export default function Dashboard() {
   const [isDefault, setIsDefault] = useState(false);
   const [error, setError] = useState('');
   const [picking, setPicking] = useState(false);
+  const [options, setOptions] = useState(null);
   const dirty = useRef(false);
+
+  // What the chart config panel can offer, straight from the API that does the
+  // grouping - so the two can never drift.
+  useEffect(() => { api.get('/stats/options').then(setOptions).catch(() => {}); }, []);
 
   const load = useCallback(async () => {
     setStatus('loading'); setError('');
@@ -47,13 +53,13 @@ export default function Dashboard() {
   };
 
   const addWidget = type => {
-    const { size } = widgetDef(type);
+    const { size, defaults } = widgetDef(type);
     // Stagger new widgets so two in a row do not land exactly on top of each other.
     const offset = (widgets.length % 6) * 28;
     const id = `w-${type}-${Date.now().toString(36)}`;
     change(list => [...list, {
       id, type, x: 40 + offset, y: 40 + offset, w: size.w, h: size.h,
-      z: Math.max(1, ...list.map(w => w.z)) + 1, config: {}
+      z: Math.max(1, ...list.map(w => w.z)) + 1, config: { ...(defaults || {}) }
     }]);
     setSelectedId(id);
     setPicking(false);
@@ -86,6 +92,8 @@ export default function Dashboard() {
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
   }, [editing]);
+
+  const selected = widgets.find(w => w.id === selectedId) || null;
 
   return (
     <>
@@ -132,6 +140,15 @@ export default function Dashboard() {
             </button>
           ))}
         </div>
+      )}
+
+      {editing && selected && (
+        <WidgetSettings
+          widget={selected}
+          options={options}
+          onChange={config => changeConfig(selected.id, config)}
+          onClose={() => setSelectedId(null)}
+        />
       )}
 
       {error && <div className="err">{error}</div>}

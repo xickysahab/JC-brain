@@ -9,7 +9,7 @@ Stack: React (Vite) + Node/Express + Postgres.
 
 ---
 
-## Ban chuka hai — Phase 1, 2 aur 3
+## Ban chuka hai — Phase 1 se 4
 
 | | |
 |---|---|
@@ -23,9 +23,14 @@ Stack: React (Vite) + Node/Express + Postgres.
 | Deadlines on calendar | Open tasks ki deadline markers ki tarah, SOS laal mein |
 | **Dashboard canvas** | Free canvas — drag, resize, overlap, z-order, snap, undo/redo |
 | Layout persistence | Per user, per breakpoint; default layout jab tak kuch save na ho |
-| Widgets | Clock, number card, task list, sticky note (charts P4 mein) |
+| Widgets | Chart, number card, progress, task list, mini calendar, quick add, clock, note |
+| **Charts** | Pie · donut · bar · horizontal bar · line · table, sab ek config se |
+| Config panel | Widget select karo → type / group by / scope / range / title |
 
-Baaki (charts + widget config, mobile layout) abhi placeholder hain.
+Baaki: mobile layout editor (P5).
+
+**Chart ke combinations:** 6 types × 10 group-by × 3 scopes × 4 ranges = **720**,
+aur banane mein sirf ek config object + teen dropdowns lage.
 
 ## Setup
 
@@ -57,7 +62,7 @@ cd frontend && npm run dev    # App  → http://localhost:5180
 ## Tests
 
 ```bash
-cd backend  && npm test   # urgency engine, CORS allowlist, layout validation — 21 checks
+cd backend  && npm test   # urgency, CORS, layout validation, chart aggregation — 33 checks
 cd frontend && npm test   # date math + calendar overlap layout — 8 checks
 ```
 
@@ -77,10 +82,11 @@ backend/                → Render
     auth.js             hashing, JWT cookie, requireAuth / requireAdmin
     score.js            urgency engine (charts P4 mein isi ko use karenge)
     layout.js           widget shape, defaults aur validation
+    stats.js            chart aggregation — group by, scope, range
     allowed-origin.js   CORS allowlist
     migrate.js          schema.sql apply karta hai (npm run db:migrate)
     setup.js            schema + pehla admin banata hai
-    routes/             auth.js · tasks.js · calendar.js · dashboard.js · admin.js
+    routes/             auth.js · tasks.js · calendar.js · dashboard.js · stats.js · admin.js
   test/score.test.js
 
 frontend/               → Vercel
@@ -90,8 +96,9 @@ frontend/               → Vercel
     api.js              fetch wrapper
     dates.js            local-time helpers + overlap lane layout
     useHistory.js       undo/redo (ek drag = ek undo step)
+    useSize.js          element measurement (charts real px par draw hote hain)
     components/         Shell · TaskDrawer · EventDrawer · canvas/
-    widgets/            registry + Clock · Counter · TaskList · Note · Placeholder
+    widgets/            registry + charts.jsx (SVG) + 8 widgets
     pages/              Login · Todo · Calendar · Dashboard · Admin
   test/dates.test.js
 ```
@@ -189,6 +196,15 @@ sirf HTTPS par kaam karega — Render par ye apne aap hai.
   placeholder ban jaata hai, taaki aaj ka layout kal bhi khule.
 - **Layout server par sanitize hota hai** — position clamp, unknown type drop,
   duplicate id fix. Ek kharab widget poora dashboard nahi rok sakta.
+- **Chart library nahi li.** Pie/bar/line hath ke SVG hain (~250 lines). Ek
+  library ~100KB laati aur apni theming bhi, jo hamare tokens se ladti. Bundle
+  charts ke saath sirf 10KB bada hua.
+- **Categorical palette validated hai** (dataviz skill ka validator, dono modes).
+  Hues fixed order mein milte hain, kabhi cycle nahi hote — cap ke baad tail
+  "Other" ban jaati hai. Status colours (red/amber/green) series ke liye kabhi
+  use nahi hote.
+- **Grouping JS mein hoti hai**, SQL mein nahi — ek hi code path computed
+  dimensions (urgency, due bucket) aur plain columns dono ke liye.
 
 ## Abhi jo nahi hai
 

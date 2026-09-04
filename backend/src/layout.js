@@ -2,9 +2,9 @@
    Its own module so the rules are testable without a server or a browser, and
    so the client and the API cannot drift on what a widget looks like. */
 
-/** Widget types the canvas can render. Charts arrive in the next phase; they
-    are listed here so a layout saved now survives until they land. */
-export const TYPES = ['clock', 'note', 'list', 'counter', 'chart', 'progress', 'calendar'];
+/** Widget types the canvas can render. Kept here rather than inferred from the
+    client so a layout cannot smuggle in a type the server has never heard of. */
+export const TYPES = ['clock', 'note', 'list', 'counter', 'chart', 'progress', 'calendar', 'quickadd'];
 export const BREAKPOINTS = ['desktop', 'mobile'];
 
 export const LIMITS = { maxWidgets: 40, minW: 120, minH: 80, maxW: 4000, maxH: 4000, maxXY: 20000 };
