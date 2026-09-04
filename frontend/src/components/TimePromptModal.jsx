@@ -26,9 +26,9 @@ function TimeSelect({ label, time, setTime }) {
 }
 
 export default function TimePromptModal({ day, defaultHour, defaultMin, onClose, onConfirm }) {
-  // Convert 24h default hour to 12h
   const dHour = defaultHour ?? 10;
-  const dMin = defaultMin ?? 0;
+  let dMin = defaultMin ?? 0;
+  dMin = Math.round(dMin / 15) * 15 % 60;
   const isPM = dHour >= 12;
   const h12 = dHour % 12 || 12;
   
@@ -40,7 +40,7 @@ export default function TimePromptModal({ day, defaultHour, defaultMin, onClose,
 
   // Default end is 1 hour after start
   const endHour = dHour + 1;
-  const eIsPM = endHour >= 12;
+  const eIsPM = (endHour % 24) >= 12 && (endHour % 24) < 24;
   const eH12 = endHour % 12 || 12;
   const [end, setEnd] = useState({
     h: String(eH12).padStart(2, '0'),
