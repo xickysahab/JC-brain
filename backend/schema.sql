@@ -117,3 +117,25 @@ begin
     alter table tasks drop column category;
   end if;
 end $$;
+
+-- Phase 5b ------------------------------------------------------------------
+
+-- The rest of the original field list, minus recurrence (that needs an engine,
+-- not a column). All optional: the modal decides which of them a user sees.
+alter table tasks add column if not exists delegated         boolean not null default false;
+alter table tasks add column if not exists blocked           boolean not null default false;
+alter table tasks add column if not exists waiting_on        text;
+alter table tasks add column if not exists follow_up_date    timestamptz;
+alter table tasks add column if not exists requires_thinking boolean not null default false;
+alter table tasks add column if not exists revenue_impact    text;
+alter table tasks add column if not exists revenue_value     numeric(14,2);
+alter table tasks add column if not exists pinned            boolean not null default false;
+
+-- Which fields this user's task modal shows. Per user, so two people sharing an
+-- account can keep different forms.
+alter table users add column if not exists task_fields jsonb;
+
+-- description was the one text column with NOT NULL, so an empty one had to be
+-- written as '' while every sibling took null. The modal sends null for any
+-- blank field, so the odd one out is the column, not the caller.
+alter table tasks alter column description drop not null;

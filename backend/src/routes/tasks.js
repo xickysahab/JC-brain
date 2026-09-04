@@ -1,41 +1,70 @@
 import { Router } from 'express';
 import { one, many } from '../db.js';
 import { rank, endOfWeek } from '../score.js';
+import { FIELDS, fieldDef } from '../task-fields.js';
 
 const r = Router();
 
-const STATUS = ['Todo', 'In Progress', 'Done', 'Cancelled'];
-const PRIORITY = ['SOS', 'High', 'Medium', 'Low'];
-const TEXT = ['title', 'description', 'owner', 'client', 'project'];
-const DATES = ['deadline', 'start_date'];
+/* The writable set comes straight from the field catalogue, so a field added
+   there is accepted here without a second edit - and one removed there stops
+   being writable everywhere at once. */
+const WRITABLE = new Map(FIELDS.map(f => [f.key, f.type]));
 
 /* Whitelist-based patch builder. Everything the client sends that is not on
    this list is dropped, so a stray field can never reach the UPDATE. */
 function buildPatch(body) {
   const set = {}, errors = [];
-  // bucket_id is checked against the caller's own buckets before it is written.
-  if ('bucket_id' in body) {
-    const v = body.bucket_id;
-    if (v == null || v === '') set.bucket_id = null;
-    else if (typeof v === 'string' && /^[0-9a-f-]{36}$/i.test(v)) set.bucket_id = v;
-    else errors.push('bucket_id is not valid');
+
+  if ('title' in body) {
+    const title = String(body.title ?? '').slice(0, 500);
+    if (!title.trim()) errors.push('Title cannot be empty');
+    else set.title = title;
   }
-  for (const k of TEXT) if (k in body) set[k] = body[k] == null ? null : String(body[k]).slice(0, 4000);
-  for (const k of DATES) if (k in body) {
-    if (body[k] == null || body[k] === '') { set[k] = null; continue; }
-    const d = new Date(body[k]);
-    if (isNaN(d)) errors.push(`${k} is not a valid date`); else set[k] = d.toISOString();
+
+  for (const [key, type] of WRITABLE) {
+    if (!(key in body)) continue;
+    const v = body[key];
+    const blank = v == null || v === '';
+
+    switch (type) {
+      case 'text': case 'textarea':
+        set[key] = blank ? null : String(v).slice(0, 4000);
+        break;
+      case 'bool':
+        set[key] = v === true || v === 'true';
+        break;
+      case 'number': {
+        if (blank) { set[key] = null; break; }
+        const n = Number(v);
+        if (!Number.isFinite(n)) errors.push(`${key} must be a number`); else set[key] = n;
+        break;
+      }
+      case 'datetime': {
+        if (blank) { set[key] = null; break; }
+        const d = new Date(v);
+        if (isNaN(d)) errors.push(`${key} is not a valid date`); else set[key] = d.toISOString();
+        break;
+      }
+      case 'enum': {
+        const def = fieldDef(key);
+        if (blank) {
+          if (def.required) errors.push(`${key} cannot be empty`); else set[key] = null;
+        } else if (!def.options.includes(v)) errors.push(`Unknown ${key}`);
+        else set[key] = v;
+        break;
+      }
+      case 'bucket':
+        // Format only here; ownership is checked against the caller below.
+        if (blank) set.bucket_id = null;
+        else if (typeof v === 'string' && /^[0-9a-f-]{36}$/i.test(v)) set.bucket_id = v;
+        else errors.push('bucket_id is not valid');
+        break;
+    }
   }
-  if ('status' in body) {
-    if (!STATUS.includes(body.status)) errors.push('Unknown status');
-    else { set.status = body.status; set.completed_at = body.status === 'Done' ? new Date().toISOString() : null; }
-  }
-  if ('priority' in body) {
-    if (body.priority == null || body.priority === '') set.priority = null;
-    else if (!PRIORITY.includes(body.priority)) errors.push('Unknown priority');
-    else set.priority = body.priority;
-  }
-  if (set.title != null && !set.title.trim()) errors.push('Title cannot be empty');
+
+  // Completing a task stamps the time; reopening clears it.
+  if ('status' in set) set.completed_at = set.status === 'Done' ? new Date().toISOString() : null;
+
   return { set, errors };
 }
 

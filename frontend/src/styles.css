@@ -349,3 +349,34 @@ td:first-child{color:var(--ink);font-weight:500}
 .bcards article:hover{border-color:var(--line-2)}
 .ctitle{padding:0;text-align:left;font-size:13.5px;line-height:1.35;width:100%;color:var(--ink)}
 .bempty{margin:0;padding:14px 4px;text-align:center;color:var(--ink-3);font-size:12px}
+
+/* ---- task modal ---- */
+.tmodal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(620px,94vw);
+        max-height:88vh;display:flex;flex-direction:column;background:var(--surface);
+        border:1px solid var(--line-2);border-radius:8px;box-shadow:0 22px 60px rgba(0,0,0,.35);z-index:25}
+.tmodal header{display:flex;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);flex:none}
+.tmodal header h2{margin:0;font-size:1.05rem}
+.tmodal .dclose{position:static;margin-left:auto}
+.tmodal .err{margin:12px 18px 0}
+.tmodal form{display:flex;flex-direction:column;min-height:0}
+.tmbody{padding:16px 18px;overflow-y:auto;display:grid;gap:12px;
+        grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.tmbody .field{margin:0;min-width:0}
+.tmbody .field:first-child{grid-column:1/-1}
+.tmbody .field label em{font-style:normal;color:var(--red);margin-left:5px}
+.tmbody > p{grid-column:1/-1}
+.boolrow{display:flex!important;align-items:center;gap:8px;font-family:var(--sans)!important;
+         font-size:13.5px!important;letter-spacing:0!important;text-transform:none!important;
+         color:var(--ink)!important;padding-top:16px}
+.boolrow input{width:16px;height:16px;accent-color:var(--accent)}
+.tmodal footer{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:13px 18px;
+               border-top:1px solid var(--line);background:var(--surface-2);flex:none;
+               border-radius:0 0 8px 8px}
+.btn.ghostbtn{border-style:dashed;color:var(--ink-2)}
+.btn.ghostbtn:hover{border-color:var(--accent);color:var(--ink)}
+.fieldpick{grid-column:1/-1;display:grid;gap:7px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.fieldpick label{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--ink);
+                 padding:7px 10px;border:1px solid var(--line);border-radius:4px;background:var(--paper)}
+.fieldpick label:hover{border-color:var(--accent)}
+.fieldpick input{width:16px;height:16px;accent-color:var(--accent);flex:none}
+.ibtn{font-family:var(--mono);font-style:italic;font-weight:600;width:26px;padding:3px 0;text-align:center}

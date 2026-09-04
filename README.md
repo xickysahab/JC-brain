@@ -27,7 +27,9 @@ Stack: React (Vite) + Node/Express + Postgres.
 | **Charts** | Pie · donut · bar · horizontal bar · line · table, sab ek config se |
 | Config panel | Widget select karo → type / group by / scope / range / title |
 | **Buckets** | User apne banata hai — Payment, Sales, HR, jo bhi. Rename, delete, colour |
-| **Dump → Triage** | Title-only dump, phir Triage se ek-ek click mein bucket assign |
+| **Add → modal** | Type karo, Add dabao, modal khulta hai — bharo ya seedha Save |
+| **Customisable modal** | 17 fields mein se user chunta hai kya dikhe. Title hamesha |
+| **Triage** | Har loose task ke neeche bucket chips — ek click, ho gaya |
 | **Board** | Buckets columns ki tarah, task drag karke daalo |
 
 Baaki: mobile layout editor (P5).
@@ -86,10 +88,11 @@ backend/                → Render
     score.js            urgency engine (charts P4 mein isi ko use karenge)
     layout.js           widget shape, defaults aur validation
     stats.js            chart aggregation — group by, scope, range
+    task-fields.js      task form ka catalogue (API whitelist + modal, ek hi jagah)
     allowed-origin.js   CORS allowlist
     migrate.js          schema.sql apply karta hai (npm run db:migrate)
     setup.js            schema + pehla admin banata hai
-    routes/             auth.js · tasks.js · buckets.js · calendar.js · dashboard.js · stats.js · admin.js
+    routes/             auth.js · tasks.js · buckets.js · calendar.js · dashboard.js · stats.js · preferences.js · admin.js
   test/score.test.js
 
 frontend/               → Vercel
@@ -101,8 +104,9 @@ frontend/               → Vercel
     useHistory.js       undo/redo (ek drag = ek undo step)
     useSize.js          element measurement (charts real px par draw hote hain)
     useBuckets.js       user ke buckets + counts
+    useTaskFields.js    modal ka catalogue + user ki pasand
     widgets/            registry + charts.jsx (SVG) + 8 widgets
-    components/         Shell · TaskDrawer · EventDrawer · BucketBar · Triage · Board · canvas/
+    components/         Shell · TaskModal · EventDrawer · BucketBar · Triage · Board · canvas/
     pages/              Login · Todo · Calendar · Dashboard · Admin
   test/dates.test.js
 ```
@@ -210,8 +214,13 @@ sirf HTTPS par kaam karega — Render par ye apne aap hai.
 - **Bucket delete karne par tasks nahi jaate.** Foreign key `on delete set null`
   hai, toh wo wapas bina-bucket ho kar Triage mein aa jaate hain — app code par
   bharosa nahi karna padta.
-- **Dump hamesha title-only hai.** Bees soch bees Enter mein jaani chahiye;
-  baaki sab Triage mein decide hota hai. Ye jaan-boojh kar hai.
+- **Task form ka ek hi catalogue hai** (`backend/src/task-fields.js`). API usi se
+  writes whitelist karta hai aur modal usi se render hota hai — do list hoti toh
+  ek din drift kar jaati.
+- **Title switch off nahi ho sakta.** Woh catalogue mein hai hi nahi, `ALWAYS`
+  mein hai — toh koi saved preference use hata nahi sakti.
+- **Khaali ya kharab field-choice default par gir jaati hai.** Khaali modal ek
+  dead end hota.
 - **Bucket ke naam case-insensitive unique hain** — "Sales" aur "sales" do alag
   buckets nahi ban sakte.
 - **Grouping JS mein hoti hai**, SQL mein nahi — ek hi code path computed

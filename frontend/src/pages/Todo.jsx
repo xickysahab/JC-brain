@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api.js';
-import TaskDrawer from '../components/TaskDrawer.jsx';
+import TaskModal from '../components/TaskModal.jsx';
 import BucketBar from '../components/BucketBar.jsx';
 import Triage from '../components/Triage.jsx';
 import Board from '../components/Board.jsx';
 import { useBuckets, bucketColor } from '../useBuckets.js';
+import { useTaskFields } from '../useTaskFields.js';
 
 const VIEWS = [
   { id: 'open',     label: 'Open' },
@@ -42,10 +43,11 @@ export default function Todo() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [title, setTitle] = useState('');
-  const [openId, setOpenId] = useState(null);
+  const [modal, setModal] = useState(null);      // a draft, or an existing task
   const [selected, setSelected] = useState(() => new Set());
   const [busyId, setBusyId] = useState(null);
   const store = useBuckets();
+  const fieldPrefs = useTaskFields();
 
   const load = useCallback(async () => {
     setLoading(true); setError('');
@@ -59,15 +61,15 @@ export default function Todo() {
 
   const refresh = () => { load(); store.reload(); };
 
-  const add = async e => {
+  /* Add opens the modal rather than saving straight away: what was typed
+     becomes the title, and everything else is filled there - or not, since
+     Save on its own is a complete action. */
+  const add = e => {
     e.preventDefault();
     if (!title.trim()) return;
-    // Dump stays title-only on purpose: twenty thoughts should cost twenty
-    // Enters, and everything else is decided later in triage.
-    const body = { title: title.trim() };
-    if (bucketId && bucketId !== 'none') body.bucket_id = bucketId;
-    try { await api.post('/tasks', body); setTitle(''); refresh(); }
-    catch (err) { setError(err.message); }
+    setModal({ title: title.trim(), status: 'Todo',
+               bucket_id: bucketId && bucketId !== 'none' ? bucketId : null });
+    setTitle('');
   };
 
   const assign = async (taskId, toBucketId) => {
@@ -90,7 +92,6 @@ export default function Todo() {
   const visible = mode === 'list' && bucketId
     ? tasks.filter(t => (bucketId === 'none' ? !t.bucket_id : t.bucket_id === bucketId))
     : tasks;
-  const openTask = tasks.find(t => t.id === openId) || null;
   const [emptyTitle, emptyHint] = EMPTY[view] || ['Kuch nahi mila', ''];
 
   return (
@@ -145,9 +146,9 @@ export default function Todo() {
       {loading ? [0, 1, 2].map(i => <div key={i} className="skel" />)
         : mode === 'triage' ? (
           <Triage tasks={tasks} buckets={store.buckets} onAssign={assign}
-                  onOpen={setOpenId} busyId={busyId} />
+                  onOpen={id => setModal(tasks.find(t => t.id === id))} busyId={busyId} />
         ) : mode === 'board' ? (
-          <Board tasks={tasks} buckets={store.buckets} onAssign={assign} onOpen={setOpenId} />
+          <Board tasks={tasks} buckets={store.buckets} onAssign={assign} onOpen={id => setModal(tasks.find(t => t.id === id))} />
         ) : !visible.length ? (
           <div className="empty"><strong>{emptyTitle}</strong>{emptyHint}</div>
         ) : visible.map(t => {
@@ -158,7 +159,7 @@ export default function Todo() {
               <input type="checkbox" checked={selected.has(t.id)} onChange={() => toggleSel(t.id)}
                      aria-label={`Select ${t.title}`} />
               <div className="rmain">
-                <button className="rtitle" onClick={() => setOpenId(t.id)}>{t.title}</button>
+                <button className="rtitle" onClick={() => setModal(t)}>{t.title}</button>
                 <div className="rmeta">
                   <span className={'tag' + (hot(t.label) ? ' hot' : warn(t.label) ? ' warn' : '')}>{t.label}</span>
                   {b && <span className="tag"><i className="dot" style={{ background: bucketColor(b) }} />{b.name}</span>}
@@ -169,14 +170,23 @@ export default function Todo() {
                 </div>
               </div>
               {!closed && <span className="score" title="attention score">{t.score}</span>}
+              <button className="btn sm ibtn" title="Details" aria-label={`Open ${t.title}`}
+                      onClick={() => setModal(t)}>i</button>
               <button className="btn sm" onClick={() => toggleDone(t)}>{closed ? 'Reopen' : 'Done'}</button>
             </div>
           );
         })}
 
-      {openTask && (
-        <TaskDrawer task={openTask} buckets={store.buckets}
-                    onClose={() => setOpenId(null)} onChanged={refresh} />
+      {modal && fieldPrefs.ready && (
+        <TaskModal
+          task={modal}
+          buckets={store.buckets}
+          fields={fieldPrefs.fields}
+          visible={fieldPrefs.visible}
+          onSaveFields={fieldPrefs.save}
+          onClose={() => setModal(null)}
+          onSaved={refresh}
+        />
       )}
     </>
   );
