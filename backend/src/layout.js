@@ -4,7 +4,7 @@
 
 /** Widget types the canvas can render. Kept here rather than inferred from the
     client so a layout cannot smuggle in a type the server has never heard of. */
-export const TYPES = ['clock', 'note', 'list', 'counter', 'chart', 'progress', 'calendar', 'quickadd'];
+export const TYPES = ['clock', 'note', 'list', 'counter', 'chart', 'progress', 'calendar', 'quickadd', 'weather', 'pomodoro', 'quote', 'shortcuts'];
 export const BREAKPOINTS = ['desktop', 'mobile'];
 
 export const LIMITS = { maxWidgets: 40, minW: 120, minH: 80, maxW: 4000, maxH: 4000, maxXY: 20000 };
