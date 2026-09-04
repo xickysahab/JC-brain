@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://jc-command-center-api.onrender.com/api/:path*" },
+    { "source": "/api/:path*", "destination": "https://jc-brain.onrender.com/api/:path*" },
     { "source": "/:path*", "destination": "/index.html" }
   ]
 }
