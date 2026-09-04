@@ -5,7 +5,7 @@ import { summarize, GROUPS } from '../src/stats.js';
 const now = new Date(2026, 8, 2, 10, 0, 0);          // Wed 2 Sep 2026
 const iso = (...a) => new Date(...a).toISOString();
 const t = extra => ({
-  status: 'Todo', priority: null, owner: null, client: null, category: null, project: null,
+  status: 'Todo', priority: null, owner: null, client: null, bucket: null, project: null,
   deadline: null, created_at: iso(2026, 8, 2), updated_at: iso(2026, 8, 2), ...extra
 });
 const byKey = r => Object.fromEntries(r.groups.map(g => [g.key, g.value]));
@@ -28,6 +28,9 @@ test('empty dimensions get a named bucket instead of being dropped', () => {
   assert.deepEqual(byKey(r), { riya: 1, Unassigned: 1 });
   assert.deepEqual(byKey(summarize([t()], { groupBy: 'priority' }, now)), { None: 1 });
   assert.deepEqual(byKey(summarize([t()], { groupBy: 'client' }, now)), { 'No client': 1 });
+  assert.deepEqual(byKey(summarize([t({ bucket: 'Sales' }), t()], { groupBy: 'bucket' }, now)), { Sales: 1, 'No bucket': 1 });
+  // charts saved before buckets existed said "category"; that must still work
+  assert.deepEqual(byKey(summarize([t({ bucket: 'Sales' })], { groupBy: 'category' }, now)), { Sales: 1 });
 });
 
 test('known dimensions keep a fixed slice order, so a pie does not reshuffle', () => {

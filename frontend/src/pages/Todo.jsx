@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { api } from '../api.js';
 import TaskDrawer from '../components/TaskDrawer.jsx';
+import BucketBar from '../components/BucketBar.jsx';
+import Triage from '../components/Triage.jsx';
+import Board from '../components/Board.jsx';
+import { useBuckets, bucketColor } from '../useBuckets.js';
 
 const VIEWS = [
   { id: 'open',     label: 'Open' },
@@ -10,6 +14,11 @@ const VIEWS = [
   { id: 'sos',      label: 'SOS' },
   { id: 'progress', label: 'In progress' },
   { id: 'done',     label: 'Done' }
+];
+const MODES = [
+  { id: 'list',   label: 'List' },
+  { id: 'board',  label: 'Board' },
+  { id: 'triage', label: 'Triage' }
 ];
 const EMPTY = {
   open:     ['Kuch open nahi hai', 'Upar likho aur Enter dabao.'],
@@ -22,13 +31,12 @@ const EMPTY = {
 };
 const hot = l => l === 'OVERDUE' || l === 'DUE TODAY' || l === 'SOS';
 const warn = l => l === 'DUE SOON' || l === 'TOMORROW';
-
-const fmt = iso => iso
-  ? new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
-  : '';
+const fmt = iso => (iso ? new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : '');
 
 export default function Todo() {
+  const [mode, setMode] = useState('list');
   const [view, setView] = useState('open');
+  const [bucketId, setBucketId] = useState(null);      // null = all, 'none' = un-bucketed
   const [q, setQ] = useState('');
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,44 +44,52 @@ export default function Todo() {
   const [title, setTitle] = useState('');
   const [openId, setOpenId] = useState(null);
   const [selected, setSelected] = useState(() => new Set());
+  const [busyId, setBusyId] = useState(null);
+  const store = useBuckets();
 
   const load = useCallback(async () => {
     setLoading(true); setError('');
     try {
-      const p = new URLSearchParams({ view });
+      const p = new URLSearchParams({ view: mode === 'triage' ? 'unbucketed' : view });
       if (q.trim()) p.set('q', q.trim());
       setTasks((await api.get(`/tasks?${p}`)).tasks);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [view, q]);
-
-  // Debounce so typing in search does not fire a request per keystroke.
+    } catch (err) { setError(err.message); } finally { setLoading(false); }
+  }, [mode, view, q]);
   useEffect(() => { const t = setTimeout(load, q ? 250 : 0); return () => clearTimeout(t); }, [load, q]);
+
+  const refresh = () => { load(); store.reload(); };
 
   const add = async e => {
     e.preventDefault();
     if (!title.trim()) return;
-    try { await api.post('/tasks', { title: title.trim() }); setTitle(''); load(); }
+    // Dump stays title-only on purpose: twenty thoughts should cost twenty
+    // Enters, and everything else is decided later in triage.
+    const body = { title: title.trim() };
+    if (bucketId && bucketId !== 'none') body.bucket_id = bucketId;
+    try { await api.post('/tasks', body); setTitle(''); refresh(); }
     catch (err) { setError(err.message); }
   };
 
+  const assign = async (taskId, toBucketId) => {
+    setBusyId(taskId);
+    try { await api.patch(`/tasks/${taskId}`, { bucket_id: toBucketId }); refresh(); }
+    catch (err) { setError(err.message); } finally { setBusyId(null); }
+  };
+
   const toggleDone = async t => {
-    try { await api.patch(`/tasks/${t.id}`, { status: t.status === 'Done' ? 'Todo' : 'Done' }); load(); }
+    try { await api.patch(`/tasks/${t.id}`, { status: t.status === 'Done' ? 'Todo' : 'Done' }); refresh(); }
     catch (err) { setError(err.message); }
   };
 
   const bulk = async payload => {
-    try { await api.post('/tasks/bulk', { ids: [...selected], ...payload }); setSelected(new Set()); load(); }
+    try { await api.post('/tasks/bulk', { ids: [...selected], ...payload }); setSelected(new Set()); refresh(); }
     catch (err) { setError(err.message); }
   };
+  const toggleSel = id => setSelected(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
-  const toggleSel = id => setSelected(s => {
-    const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n;
-  });
-
+  const visible = mode === 'list' && bucketId
+    ? tasks.filter(t => (bucketId === 'none' ? !t.bucket_id : t.bucket_id === bucketId))
+    : tasks;
   const openTask = tasks.find(t => t.id === openId) || null;
   const [emptyTitle, emptyHint] = EMPTY[view] || ['Kuch nahi mila', ''];
 
@@ -81,7 +97,7 @@ export default function Todo() {
     <>
       <div className="head">
         <h1>To-do</h1>
-        <p>Overdue apne aap upar aata hai — priority manually set karne ki zaroorat nahi.</p>
+        <p>Pehle sab dump karo — phir Triage se apne buckets mein baant do.</p>
       </div>
 
       <form className="quick" onSubmit={add}>
@@ -90,61 +106,78 @@ export default function Todo() {
         <button className="btn primary" disabled={!title.trim()}>Add</button>
       </form>
 
+      <BucketBar store={store} selected={bucketId} onSelect={setBucketId} />
+
       <div className="chips">
-        {VIEWS.map(v => (
+        {MODES.map(m => (
+          <button key={m.id} className={'chip' + (mode === m.id ? ' on' : '')}
+                  onClick={() => { setMode(m.id); setSelected(new Set()); }}>
+            {m.label}{m.id === 'triage' && store.unbucketed > 0 ? ` (${store.unbucketed})` : ''}
+          </button>
+        ))}
+        <span style={{ width: 10 }} />
+        {mode !== 'triage' && VIEWS.map(v => (
           <button key={v.id} className={'chip' + (view === v.id ? ' on' : '')}
                   onClick={() => { setView(v.id); setSelected(new Set()); }}>{v.label}</button>
         ))}
-        <input className="chip" style={{ minWidth: 180 }} type="search" value={q}
-               onChange={e => setQ(e.target.value)} placeholder="Search…" aria-label="Search tasks" />
+        {mode === 'list' && (
+          <input className="chip" style={{ minWidth: 170 }} type="search" value={q}
+                 onChange={e => setQ(e.target.value)} placeholder="Search…" aria-label="Search tasks" />
+        )}
       </div>
 
       {error && <div className="err">{error}</div>}
 
-      {selected.size > 0 && (
+      {selected.size > 0 && mode === 'list' && (
         <div className="bulk">
           <strong>{selected.size} selected</strong>
+          {store.buckets.map(b => (
+            <button key={b.id} className="btn sm" onClick={() => bulk({ patch: { bucket_id: b.id } })}>
+              &rarr; {b.name}
+            </button>
+          ))}
           <button className="btn sm" onClick={() => bulk({ patch: { status: 'Done' } })}>Mark done</button>
-          <button className="btn sm" onClick={() => bulk({ patch: { priority: 'SOS' } })}>Mark SOS</button>
-          <button className="btn sm" onClick={() => bulk({ patch: { deadline: endOfToday() } })}>Due today</button>
           <button className="btn sm danger" onClick={() => bulk({ action: 'delete' })}>Delete</button>
           <button className="btn sm" onClick={() => setSelected(new Set())}>Clear</button>
         </div>
       )}
 
-      {loading ? (
-        <>{[0, 1, 2].map(i => <div key={i} className="skel" />)}</>
-      ) : !tasks.length ? (
-        <div className="empty"><strong>{emptyTitle}</strong>{emptyHint}</div>
-      ) : tasks.map(t => {
-        const closed = t.status === 'Done' || t.status === 'Cancelled';
-        return (
-          <div key={t.id} className={'row' + (closed ? ' closed' : '')}>
-            <input type="checkbox" checked={selected.has(t.id)} onChange={() => toggleSel(t.id)}
-                   aria-label={`Select ${t.title}`} />
-            <div className="rmain">
-              <button className="rtitle" onClick={() => setOpenId(t.id)}>{t.title}</button>
-              <div className="rmeta">
-                <span className={'tag' + (hot(t.label) ? ' hot' : warn(t.label) ? ' warn' : '')}>{t.label}</span>
-                {t.deadline && <span className="tag">due {fmt(t.deadline)}</span>}
-                {t.priority && t.priority !== 'SOS' && <span className="tag">{t.priority}</span>}
-                {t.owner && <span className="tag">@{t.owner}</span>}
-                {t.client && <span className="tag">#{t.client}</span>}
-                {t.category && <span className="tag">{t.category}</span>}
-                {t.status === 'In Progress' && <span className="tag ok">In progress</span>}
+      {loading ? [0, 1, 2].map(i => <div key={i} className="skel" />)
+        : mode === 'triage' ? (
+          <Triage tasks={tasks} buckets={store.buckets} onAssign={assign}
+                  onOpen={setOpenId} busyId={busyId} />
+        ) : mode === 'board' ? (
+          <Board tasks={tasks} buckets={store.buckets} onAssign={assign} onOpen={setOpenId} />
+        ) : !visible.length ? (
+          <div className="empty"><strong>{emptyTitle}</strong>{emptyHint}</div>
+        ) : visible.map(t => {
+          const closed = t.status === 'Done' || t.status === 'Cancelled';
+          const b = store.buckets.find(x => x.id === t.bucket_id);
+          return (
+            <div key={t.id} className={'row' + (closed ? ' closed' : '')}>
+              <input type="checkbox" checked={selected.has(t.id)} onChange={() => toggleSel(t.id)}
+                     aria-label={`Select ${t.title}`} />
+              <div className="rmain">
+                <button className="rtitle" onClick={() => setOpenId(t.id)}>{t.title}</button>
+                <div className="rmeta">
+                  <span className={'tag' + (hot(t.label) ? ' hot' : warn(t.label) ? ' warn' : '')}>{t.label}</span>
+                  {b && <span className="tag"><i className="dot" style={{ background: bucketColor(b) }} />{b.name}</span>}
+                  {t.deadline && <span className="tag">due {fmt(t.deadline)}</span>}
+                  {t.priority && t.priority !== 'SOS' && <span className="tag">{t.priority}</span>}
+                  {t.owner && <span className="tag">@{t.owner}</span>}
+                  {t.client && <span className="tag">#{t.client}</span>}
+                </div>
               </div>
+              {!closed && <span className="score" title="attention score">{t.score}</span>}
+              <button className="btn sm" onClick={() => toggleDone(t)}>{closed ? 'Reopen' : 'Done'}</button>
             </div>
-            {!closed && <span className="score" title="attention score">{t.score}</span>}
-            <button className="btn sm" onClick={() => toggleDone(t)}>{closed ? 'Reopen' : 'Done'}</button>
-          </div>
-        );
-      })}
+          );
+        })}
 
       {openTask && (
-        <TaskDrawer task={openTask} onClose={() => setOpenId(null)} onChanged={load} />
+        <TaskDrawer task={openTask} buckets={store.buckets}
+                    onClose={() => setOpenId(null)} onChanged={refresh} />
       )}
     </>
   );
 }
-
-function endOfToday() { const d = new Date(); d.setHours(23, 59, 0, 0); return d.toISOString(); }

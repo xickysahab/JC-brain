@@ -10,6 +10,7 @@ import calendarRoutes from './routes/calendar.js';
 import adminRoutes from './routes/admin.js';
 import dashboardRoutes from './routes/dashboard.js';
 import statsRoutes from './routes/stats.js';
+import bucketRoutes from './routes/buckets.js';
 
 const app = express();
 
@@ -42,6 +43,7 @@ app.use('/api/tasks', requireAuth, taskRoutes);
 app.use('/api/calendar', requireAuth, calendarRoutes);
 app.use('/api/dashboard', requireAuth, dashboardRoutes);
 app.use('/api/stats', requireAuth, statsRoutes);
+app.use('/api/buckets', requireAuth, bucketRoutes);
 app.use('/api/admin', requireAuth, requireAdmin, adminRoutes);
 
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));

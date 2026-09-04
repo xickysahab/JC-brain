@@ -3,7 +3,7 @@ import { api } from '../api.js';
 
 const STATUS = ['Todo', 'In Progress', 'Done', 'Cancelled'];
 const PRIORITY = ['', 'SOS', 'High', 'Medium', 'Low'];
-const CATEGORY = ['', 'Client', 'Sales', 'Finance', 'Team', 'Creative', 'Admin', 'Learning', 'Personal'];
+
 
 const toLocal = iso => {
   if (!iso) return '';
@@ -14,7 +14,7 @@ const fromLocal = v => (v ? new Date(v).toISOString() : null);
 
 /* Edits are sent field by field on blur/change rather than through a Save
    button, so a half-filled drawer can be closed without losing anything. */
-export default function TaskDrawer({ task, onClose, onChanged }) {
+export default function TaskDrawer({ task, buckets = [], onClose, onChanged }) {
   const [draft, setDraft] = useState(task);
   const [error, setError] = useState('');
 
@@ -95,7 +95,13 @@ export default function TaskDrawer({ task, onClose, onChanged }) {
           {text('client', 'CLIENT')}
         </div>
         <div className="two">
-          {pick('category', 'CATEGORY', CATEGORY)}
+          <div className="field">
+            <label>BUCKET</label>
+            <select value={draft.bucket_id || ''} onChange={e => save({ bucket_id: e.target.value || null })}>
+              <option value="">Bina bucket</option>
+              {buckets.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
+          </div>
           {text('project', 'PROJECT')}
         </div>
 

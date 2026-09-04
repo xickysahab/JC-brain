@@ -1,0 +1,78 @@
+import { useState } from 'react';
+import { bucketColor } from '../useBuckets.js';
+
+/* The bucket strip: filter in list mode, and the place buckets are created,
+   renamed and deleted. Deleting one never deletes its tasks - they go back to
+   the triage pile, which is what the confirm text promises. */
+export default function BucketBar({ store, selected, onSelect, showCounts = true }) {
+  const { buckets, unbucketed, create, rename, remove, error, clearError } = store;
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState('');
+  const [managing, setManaging] = useState(false);
+
+  const submit = async e => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    if (await create(name)) { setName(''); setAdding(false); }
+  };
+
+  const doRename = async b => {
+    const next = prompt(`"${b.name}" ka naya naam:`, b.name);
+    if (next && next.trim() && next !== b.name) await rename(b.id, next);
+  };
+  const doRemove = async b => {
+    if (!confirm(`"${b.name}" bucket hataana hai?\n\nIske ${b.task_count} task delete NAHI honge — wo wapas bina-bucket ho jaayenge.`)) return;
+    await remove(b.id);
+  };
+
+  return (
+    <div className="bucketbar">
+      {error && <div className="err" style={{ width: '100%' }} onClick={clearError}>{error}</div>}
+
+      <button className={'bchip' + (selected === null ? ' on' : '')} onClick={() => onSelect(null)}>
+        All{showCounts && buckets.length > 0 && <b>{buckets.reduce((n, b) => n + Number(b.open_count), 0) + unbucketed}</b>}
+      </button>
+
+      {buckets.map(b => (
+        <span key={b.id} className="bwrap">
+          <button className={'bchip' + (selected === b.id ? ' on' : '')} onClick={() => onSelect(b.id)}>
+            <i style={{ background: bucketColor(b) }} />
+            {b.name}
+            {showCounts && <b>{b.open_count}</b>}
+          </button>
+          {managing && (
+            <span className="bmenu">
+              <button title="Rename" onClick={() => doRename(b)}>&#9998;</button>
+              <button title="Delete" className="danger" onClick={() => doRemove(b)}>&times;</button>
+            </span>
+          )}
+        </span>
+      ))}
+
+      {unbucketed > 0 && (
+        <button className={'bchip loose' + (selected === 'none' ? ' on' : '')} onClick={() => onSelect('none')}>
+          Bina bucket <b>{unbucketed}</b>
+        </button>
+      )}
+
+      {adding ? (
+        <form className="badd" onSubmit={submit}>
+          <input autoFocus value={name} maxLength={40} placeholder="Bucket ka naam"
+                 onChange={e => setName(e.target.value)}
+                 onKeyDown={e => e.key === 'Escape' && setAdding(false)} />
+          <button className="btn sm primary">Add</button>
+          <button type="button" className="btn sm" onClick={() => setAdding(false)}>Cancel</button>
+        </form>
+      ) : (
+        <>
+          <button className="bchip ghost" onClick={() => setAdding(true)}>+ New bucket</button>
+          {buckets.length > 0 && (
+            <button className="bchip ghost" onClick={() => setManaging(m => !m)}>
+              {managing ? 'Done' : 'Manage'}
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  );
+}

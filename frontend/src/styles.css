@@ -303,3 +303,49 @@ td:first-child{color:var(--ink);font-weight:500}
 .mday.today{background:var(--accent-soft);color:var(--ink);font-weight:600}
 .mday em{position:absolute;bottom:1px;width:4px;height:4px;border-radius:50%;background:var(--accent)}
 .mday em.due{background:var(--red)}
+
+/* ---- buckets ---- */
+.bucketbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 12px;
+           padding:9px 10px;border:1px solid var(--line);border-radius:5px;background:var(--surface)}
+.bwrap{display:inline-flex;align-items:center}
+.bchip{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:5px 11px;
+       border:1px solid var(--line-2);border-radius:14px;color:var(--ink-2);background:var(--paper)}
+.bchip:hover{border-color:var(--accent);color:var(--ink)}
+.bchip.on{border-color:var(--accent);background:var(--accent-soft);color:var(--ink);font-weight:600}
+.bchip i{width:9px;height:9px;border-radius:50%;flex:none}
+.bchip b{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.bchip.on b{color:var(--accent)}
+.bchip.ghost{border-style:dashed;color:var(--ink-3)}
+.bchip.loose{border-color:var(--amber);color:var(--amber)}
+.bchip.sm{font-size:12px;padding:3px 9px}
+.bmenu{display:inline-flex;gap:1px;margin-left:2px}
+.bmenu button{font-size:12px;padding:4px 6px;border-radius:3px;color:var(--ink-3)}
+.bmenu button:hover{background:var(--surface-2);color:var(--ink)}
+.bmenu button.danger:hover{color:var(--red)}
+.badd{display:flex;gap:6px;align-items:center}
+.badd input{padding:5px 10px;border:1px solid var(--accent);border-radius:14px;background:var(--paper);font-size:13px;width:170px}
+.tag i.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:0}
+
+/* ---- triage ---- */
+.triage{padding:11px 13px;border:1px solid var(--line);border-radius:5px;background:var(--surface);margin-bottom:7px}
+.triage.busy{opacity:.5;pointer-events:none}
+.ttitle{padding:0;text-align:left;font-size:14.5px;color:var(--ink);display:block;width:100%}
+.ttitle:hover{color:var(--accent)}
+.tbuckets{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+
+/* ---- board ---- */
+.board{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;align-items:flex-start}
+.bcol{flex:0 0 240px;border:1px solid var(--line);border-radius:6px;background:var(--surface);
+      display:flex;flex-direction:column;max-height:calc(100vh - 330px)}
+.bcol.over{border-color:var(--accent);background:var(--accent-soft)}
+.bcol header{display:flex;align-items:center;gap:7px;padding:9px 11px;border-bottom:1px solid var(--line);
+             background:var(--surface-2);border-radius:6px 6px 0 0;flex:none}
+.bcol header i{width:9px;height:9px;border-radius:50%;flex:none}
+.bcol header span{flex:1;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bcol header b{font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
+.bcards{padding:8px;display:flex;flex-direction:column;gap:6px;overflow-y:auto}
+.bcards article{border:1px solid var(--line);border-radius:4px;background:var(--paper);padding:8px 10px;cursor:grab}
+.bcards article:active{cursor:grabbing}
+.bcards article:hover{border-color:var(--line-2)}
+.ctitle{padding:0;text-align:left;font-size:13.5px;line-height:1.35;width:100%;color:var(--ink)}
+.bempty{margin:0;padding:14px 4px;text-align:center;color:var(--ink-3);font-size:12px}

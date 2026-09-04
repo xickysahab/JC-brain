@@ -28,7 +28,7 @@ export const GROUPS = {
               } },
   owner:    { label: 'Owner',    of: t => t.owner || 'Unassigned' },
   client:   { label: 'Client',   of: t => t.client || 'No client' },
-  category: { label: 'Category', of: t => t.category || 'Uncategorised' },
+  bucket:   { label: 'Bucket',   of: t => t.bucket || 'No bucket' },
   project:  { label: 'Project',  of: t => t.project || 'No project' },
   created:  { label: 'Created on',  date: true, of: t => dayKey(t.created_at) },
   deadline: { label: 'Deadline on', date: true, of: t => (t.deadline ? dayKey(t.deadline) : null) }
@@ -49,7 +49,11 @@ export const RANGES = {
 
 export const METRICS = { count: { label: 'Task count' } };
 
-export const isGroup = g => Object.hasOwn(GROUPS, g);
+// "category" was this dimension's name before buckets replaced it; saved chart
+// configs still carry it, so it keeps working.
+const ALIASES = { category: 'bucket' };
+export const resolveGroup = g => (Object.hasOwn(GROUPS, g) ? g : ALIASES[g]);
+export const isGroup = g => !!resolveGroup(g);
 export const isScope = s => Object.hasOwn(SCOPES, s);
 export const isRange = r => Object.hasOwn(RANGES, r);
 
@@ -58,7 +62,7 @@ export const isRange = r => Object.hasOwn(RANGES, r);
     which keeps one code path for every dimension including the computed ones.
     Push it into SQL if a single user ever holds tens of thousands of tasks. */
 export function summarize(tasks, opts = {}, now = new Date()) {
-  const groupBy = isGroup(opts.groupBy) ? opts.groupBy : 'status';
+  const groupBy = resolveGroup(opts.groupBy) || 'status';
   const scope = isScope(opts.scope) ? opts.scope : 'open';
   const range = isRange(opts.range) ? opts.range : 'all';
   const g = GROUPS[groupBy];

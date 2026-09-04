@@ -9,7 +9,7 @@ Stack: React (Vite) + Node/Express + Postgres.
 
 ---
 
-## Ban chuka hai — Phase 1 se 4
+## Ban chuka hai — Phase 1 se 5
 
 | | |
 |---|---|
@@ -26,6 +26,9 @@ Stack: React (Vite) + Node/Express + Postgres.
 | Widgets | Chart, number card, progress, task list, mini calendar, quick add, clock, note |
 | **Charts** | Pie · donut · bar · horizontal bar · line · table, sab ek config se |
 | Config panel | Widget select karo → type / group by / scope / range / title |
+| **Buckets** | User apne banata hai — Payment, Sales, HR, jo bhi. Rename, delete, colour |
+| **Dump → Triage** | Title-only dump, phir Triage se ek-ek click mein bucket assign |
+| **Board** | Buckets columns ki tarah, task drag karke daalo |
 
 Baaki: mobile layout editor (P5).
 
@@ -74,7 +77,7 @@ Yahi do jagah asli logic hai; baaki sab CRUD aur layout hai.
 
 ```
 backend/                → Render
-  schema.sql            tables: accounts, users, tasks, events, dashboard_layouts
+  schema.sql            tables: accounts, users, tasks, buckets, events, dashboard_layouts
   render.yaml           Render blueprint
   src/
     index.js            express app + routes wiring
@@ -86,7 +89,7 @@ backend/                → Render
     allowed-origin.js   CORS allowlist
     migrate.js          schema.sql apply karta hai (npm run db:migrate)
     setup.js            schema + pehla admin banata hai
-    routes/             auth.js · tasks.js · calendar.js · dashboard.js · stats.js · admin.js
+    routes/             auth.js · tasks.js · buckets.js · calendar.js · dashboard.js · stats.js · admin.js
   test/score.test.js
 
 frontend/               → Vercel
@@ -97,8 +100,9 @@ frontend/               → Vercel
     dates.js            local-time helpers + overlap lane layout
     useHistory.js       undo/redo (ek drag = ek undo step)
     useSize.js          element measurement (charts real px par draw hote hain)
-    components/         Shell · TaskDrawer · EventDrawer · canvas/
+    useBuckets.js       user ke buckets + counts
     widgets/            registry + charts.jsx (SVG) + 8 widgets
+    components/         Shell · TaskDrawer · EventDrawer · BucketBar · Triage · Board · canvas/
     pages/              Login · Todo · Calendar · Dashboard · Admin
   test/dates.test.js
 ```
@@ -203,6 +207,13 @@ sirf HTTPS par kaam karega — Render par ye apne aap hai.
   Hues fixed order mein milte hain, kabhi cycle nahi hote — cap ke baad tail
   "Other" ban jaati hai. Status colours (red/amber/green) series ke liye kabhi
   use nahi hote.
+- **Bucket delete karne par tasks nahi jaate.** Foreign key `on delete set null`
+  hai, toh wo wapas bina-bucket ho kar Triage mein aa jaate hain — app code par
+  bharosa nahi karna padta.
+- **Dump hamesha title-only hai.** Bees soch bees Enter mein jaani chahiye;
+  baaki sab Triage mein decide hota hai. Ye jaan-boojh kar hai.
+- **Bucket ke naam case-insensitive unique hain** — "Sales" aur "sales" do alag
+  buckets nahi ban sakte.
 - **Grouping JS mein hoti hai**, SQL mein nahi — ek hi code path computed
   dimensions (urgency, due bucket) aur plain columns dono ke liye.
 

@@ -19,9 +19,10 @@ r.get('/options', (req, res) => {
 
 r.get('/', async (req, res) => {
   const tasks = await many(
-    `select status, priority, owner, client, category, project,
-            deadline, created_at, updated_at
-       from tasks where user_id = $1`,
+    `select t.status, t.priority, t.owner, t.client, t.project,
+            t.deadline, t.created_at, t.updated_at, b.name as bucket
+       from tasks t left join buckets b on b.id = t.bucket_id
+      where t.user_id = $1`,
     [req.user.id]
   );
   res.json(summarize(tasks, {

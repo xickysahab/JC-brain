@@ -73,3 +73,47 @@ create table if not exists dashboard_layouts (
   updated_at  timestamptz not null default now(),
   unique (user_id, breakpoint)
 );
+
+-- Phase 5 -------------------------------------------------------------------
+
+-- User-made buckets. This replaces the old fixed `category` enum on tasks:
+-- one concept, named by the user, not by us.
+create table if not exists buckets (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references users(id) on delete cascade,
+  account_id  uuid not null references accounts(id) on delete cascade,
+  name        text not null,
+  color       smallint not null default 0,
+  position    integer not null default 0,
+  created_at  timestamptz not null default now()
+);
+create unique index if not exists buckets_user_name_idx on buckets(user_id, lower(name));
+create index if not exists buckets_user_pos_idx on buckets(user_id, position);
+
+-- Deleting a bucket leaves its tasks un-bucketed rather than deleting them.
+alter table tasks add column if not exists bucket_id uuid references buckets(id) on delete set null;
+create index if not exists tasks_user_bucket_idx on tasks(user_id, bucket_id);
+
+-- One-shot migration off the old text column: every distinct category a user
+-- had becomes a bucket, tasks are relinked, then the column goes.
+do $$
+begin
+  if exists (select 1 from information_schema.columns
+              where table_name = 'tasks' and column_name = 'category') then
+
+    insert into buckets (user_id, account_id, name)
+    select distinct user_id, account_id, trim(category)
+      from tasks
+     where category is not null and trim(category) <> ''
+    on conflict do nothing;
+
+    update tasks t
+       set bucket_id = b.id
+      from buckets b
+     where b.user_id = t.user_id
+       and lower(b.name) = lower(trim(t.category))
+       and t.bucket_id is null;
+
+    alter table tasks drop column category;
+  end if;
+end $$;

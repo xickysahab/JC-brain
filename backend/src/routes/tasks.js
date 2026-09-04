@@ -6,13 +6,20 @@ const r = Router();
 
 const STATUS = ['Todo', 'In Progress', 'Done', 'Cancelled'];
 const PRIORITY = ['SOS', 'High', 'Medium', 'Low'];
-const TEXT = ['title', 'description', 'owner', 'client', 'category', 'project'];
+const TEXT = ['title', 'description', 'owner', 'client', 'project'];
 const DATES = ['deadline', 'start_date'];
 
 /* Whitelist-based patch builder. Everything the client sends that is not on
    this list is dropped, so a stray field can never reach the UPDATE. */
 function buildPatch(body) {
   const set = {}, errors = [];
+  // bucket_id is checked against the caller's own buckets before it is written.
+  if ('bucket_id' in body) {
+    const v = body.bucket_id;
+    if (v == null || v === '') set.bucket_id = null;
+    else if (typeof v === 'string' && /^[0-9a-f-]{36}$/i.test(v)) set.bucket_id = v;
+    else errors.push('bucket_id is not valid');
+  }
   for (const k of TEXT) if (k in body) set[k] = body[k] == null ? null : String(body[k]).slice(0, 4000);
   for (const k of DATES) if (k in body) {
     if (body[k] == null || body[k] === '') { set[k] = null; continue; }
@@ -34,27 +41,35 @@ function buildPatch(body) {
 
 /* Every query is scoped by user_id. The admin has no read path into another
    user's tasks - that was the explicit product decision, not an oversight. */
-const scoped = 'where user_id = $1';
+const SELECT = `select t.*, b.name as bucket
+                  from tasks t left join buckets b on b.id = t.bucket_id`;
+const scoped = 'where t.user_id = $1';
+
+/* A bucket id from the client is only a shape until this says it belongs to
+   the caller - otherwise one user could file their task under another's. */
+const ownsBucket = async (userId, id) =>
+  !id || !!(await one('select 1 from buckets where id = $1 and user_id = $2', [id, userId]));
 
 r.get('/', async (req, res) => {
   const view = String(req.query.view || 'open');
   const search = String(req.query.q || '').trim();
   const params = [req.user.id];
-  let sql = `select * from tasks ${scoped}`;
+  let sql = `${SELECT} ${scoped}`;
 
   if (search) { params.push(`%${search}%`);
-    sql += ` and (title ilike $${params.length} or description ilike $${params.length}
-                  or client ilike $${params.length} or owner ilike $${params.length}
-                  or category ilike $${params.length} or project ilike $${params.length})`; }
+    sql += ` and (t.title ilike $${params.length} or t.description ilike $${params.length}
+                  or t.client ilike $${params.length} or t.owner ilike $${params.length}
+                  or b.name ilike $${params.length} or t.project ilike $${params.length})`; }
 
-  if (view === 'open')          sql += ` and status in ('Todo','In Progress')`;
-  else if (view === 'todo')     sql += ` and status = 'Todo'`;
-  else if (view === 'progress') sql += ` and status = 'In Progress'`;
-  else if (view === 'done')     sql += ` and status in ('Done','Cancelled')`;
-  else if (view === 'sos')      sql += ` and priority = 'SOS' and status in ('Todo','In Progress')`;
-  else if (view === 'overdue')  sql += ` and deadline < now() and status in ('Todo','In Progress')`;
-  else if (view === 'today')    sql += ` and deadline < $${params.push(endOfDay()) } and status in ('Todo','In Progress')`;
-  else if (view === 'week')     sql += ` and deadline <= $${params.push(endOfWeek(new Date()).toISOString())} and status in ('Todo','In Progress')`;
+  if (view === 'open')          sql += ` and t.status in ('Todo','In Progress')`;
+  else if (view === 'todo')     sql += ` and t.status = 'Todo'`;
+  else if (view === 'progress') sql += ` and t.status = 'In Progress'`;
+  else if (view === 'done')     sql += ` and t.status in ('Done','Cancelled')`;
+  else if (view === 'sos')      sql += ` and t.priority = 'SOS' and t.status in ('Todo','In Progress')`;
+  else if (view === 'overdue')  sql += ` and t.deadline < now() and t.status in ('Todo','In Progress')`;
+  else if (view === 'today')    sql += ` and t.deadline < $${params.push(endOfDay())} and t.status in ('Todo','In Progress')`;
+  else if (view === 'unbucketed') sql += ` and t.bucket_id is null and t.status in ('Todo','In Progress')`;
+  else if (view === 'week')     sql += ` and t.deadline <= $${params.push(endOfWeek(new Date()).toISOString())} and t.status in ('Todo','In Progress')`;
 
   const rows = await many(sql, params);
   res.json({ tasks: view === 'done' ? rows.sort(byRecent) : rank(rows) });
@@ -65,7 +80,8 @@ const byRecent = (a, b) => new Date(b.completed_at || b.updated_at) - new Date(a
 
 r.get('/counts', async (req, res) => {
   const rows = await many(
-    `select status, priority, deadline from tasks ${scoped} and status in ('Todo','In Progress')`,
+    `select t.status, t.priority, t.deadline, t.bucket_id from tasks t ${scoped}
+        and t.status in ('Todo','In Progress')`,
     [req.user.id]
   );
   const now = new Date(), eod = new Date(endOfDay());
@@ -73,7 +89,8 @@ r.get('/counts', async (req, res) => {
     open: rows.length,
     sos: rows.filter(t => t.priority === 'SOS').length,
     overdue: rows.filter(t => t.deadline && new Date(t.deadline) < now).length,
-    today: rows.filter(t => t.deadline && new Date(t.deadline) <= eod).length
+    today: rows.filter(t => t.deadline && new Date(t.deadline) <= eod).length,
+    unbucketed: rows.filter(t => !t.bucket_id).length
   });
 });
 
@@ -81,6 +98,7 @@ r.post('/', async (req, res) => {
   const { set, errors } = buildPatch(req.body || {});
   if (!set.title?.trim()) errors.push('Title is required');
   if (errors.length) return res.status(400).json({ error: errors[0] });
+  if (!await ownsBucket(req.user.id, set.bucket_id)) return res.status(400).json({ error: 'Unknown bucket' });
 
   const cols = ['user_id', 'account_id', ...Object.keys(set)];
   const vals = [req.user.id, req.user.account_id, ...Object.values(set)];
@@ -94,6 +112,7 @@ r.patch('/:id', async (req, res) => {
   const { set, errors } = buildPatch(req.body || {});
   if (errors.length) return res.status(400).json({ error: errors[0] });
   if (!Object.keys(set).length) return res.status(400).json({ error: 'Nothing to update' });
+  if (!await ownsBucket(req.user.id, set.bucket_id)) return res.status(400).json({ error: 'Unknown bucket' });
 
   const keys = Object.keys(set);
   const assigns = keys.map((k, i) => `${k} = $${i + 3}`).join(', ');
@@ -124,6 +143,7 @@ r.post('/bulk', async (req, res) => {
   const { set, errors } = buildPatch(req.body?.patch || {});
   if (errors.length) return res.status(400).json({ error: errors[0] });
   if (!Object.keys(set).length) return res.status(400).json({ error: 'Nothing to update' });
+  if (!await ownsBucket(req.user.id, set.bucket_id)) return res.status(400).json({ error: 'Unknown bucket' });
 
   const keys = Object.keys(set);
   const assigns = keys.map((k, i) => `${k} = $${i + 3}`).join(', ');
