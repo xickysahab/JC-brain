@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { bucketColor } from '../useBuckets.js';
 import { Plus, Settings, Edit2, Trash2, Check } from 'lucide-react';
+import DialogModal from './DialogModal.jsx';
 
 /* The bucket strip: filter in list mode, and the place buckets are created,
    renamed and deleted. Deleting one never deletes its tasks - they go back to
@@ -10,6 +11,7 @@ export default function BucketBar({ store, selected, onSelect, showCounts = true
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState('');
   const [managing, setManaging] = useState(false);
+  const [dialog, setDialog] = useState(null);
 
   const submit = async e => {
     e.preventDefault();
@@ -17,16 +19,35 @@ export default function BucketBar({ store, selected, onSelect, showCounts = true
     if (await create(name)) { setName(''); setAdding(false); }
   };
 
-  const doRename = async b => {
-    const next = prompt(`Rename "${b.name}" to:`, b.name);
-    if (next && next.trim() && next !== b.name) await rename(b.id, next);
+  const doRename = b => {
+    setDialog({
+      type: 'prompt',
+      title: 'Rename Bucket',
+      description: `Rename "${b.name}" to:`,
+      defaultValue: b.name,
+      onConfirm: async val => {
+        if (val && val.trim() && val !== b.name) await rename(b.id, val);
+        setDialog(null);
+      }
+    });
   };
-  const doRemove = async b => {
-    if (!confirm(`Delete the "${b.name}" bucket?\n\nIts ${b.task_count} task(s) will not be deleted — they move back to Uncategorised.`)) return;
-    await remove(b.id);
+
+  const doRemove = b => {
+    setDialog({
+      type: 'confirm',
+      title: 'Delete Bucket',
+      description: `Delete the "${b.name}" bucket?\n\nIts ${b.task_count} task(s) will not be deleted — they move back to Uncategorised.`,
+      danger: true,
+      confirmLabel: 'Delete',
+      onConfirm: async () => {
+        await remove(b.id);
+        setDialog(null);
+      }
+    });
   };
 
   return (
+    <>
     <div className="bucketbar">
       {error && <div className="err" style={{ width: '100%' }} onClick={clearError}>{error}</div>}
 
@@ -77,5 +98,7 @@ export default function BucketBar({ store, selected, onSelect, showCounts = true
         </div>
       )}
     </div>
+    <DialogModal dialog={dialog} onClose={() => setDialog(null)} />
+    </>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import { toLocalInput, fromLocalInput } from '../dates.js';
+import DialogModal from './DialogModal.jsx';
 
 /* Handles both a brand new draft and an existing event. Events have a start
    and an end that must agree, so this one saves on a button rather than
@@ -10,6 +11,7 @@ export default function EventDrawer({ event, onClose, onChanged }) {
   const [draft, setDraft] = useState(event);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [dialog, setDialog] = useState(null);
 
   useEffect(() => setDraft(event), [event]);
   useEffect(() => {
@@ -34,10 +36,19 @@ export default function EventDrawer({ event, onClose, onChanged }) {
     } catch (err) { setError(err.message); } finally { setBusy(false); }
   };
 
-  const remove = async () => {
-    if (!confirm(`Delete "${event.title}"? This cannot be undone.`)) return;
-    try { await api.del(`/calendar/events/${event.id}`); onChanged(); onClose(); }
-    catch (err) { setError(err.message); }
+  const remove = () => {
+    setDialog({
+      type: 'confirm',
+      title: 'Delete Event',
+      description: `Delete "${event.title}"? This cannot be undone.`,
+      danger: true,
+      confirmLabel: 'Delete',
+      onConfirm: async () => {
+        try { await api.del(`/calendar/events/${event.id}`); onChanged(); onClose(); }
+        catch (err) { setError(err.message); }
+        setDialog(null);
+      }
+    });
   };
 
   return (
@@ -85,6 +96,7 @@ export default function EventDrawer({ event, onClose, onChanged }) {
           </div>
         </form>
       </aside>
+      <DialogModal dialog={dialog} onClose={() => setDialog(null)} />
     </>
   );
 }

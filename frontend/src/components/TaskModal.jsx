@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
+import DialogModal from './DialogModal.jsx';
 
 const toLocal = iso => {
   if (!iso) return '';
@@ -19,6 +20,7 @@ export default function TaskModal({ task, buckets, fields, visible, onClose, onS
   const [busy, setBusy] = useState(false);
   const [picking, setPicking] = useState(false);
   const [picked, setPicked] = useState(visible);
+  const [dialog, setDialog] = useState(null);
 
   useEffect(() => { setDraft(task); }, [task]);
   useEffect(() => { setPicked(visible); }, [visible]);
@@ -44,10 +46,19 @@ export default function TaskModal({ task, buckets, fields, visible, onClose, onS
     } catch (err) { setError(err.message); } finally { setBusy(false); }
   };
 
-  const remove = async () => {
-    if (!confirm(`Delete "${task.title}"? This cannot be undone.`)) return;
-    try { await api.del(`/tasks/${task.id}`); onSaved(); onClose(); }
-    catch (err) { setError(err.message); }
+  const remove = () => {
+    setDialog({
+      type: 'confirm',
+      title: 'Delete Task',
+      description: `Delete "${task.title}"? This cannot be undone.`,
+      danger: true,
+      confirmLabel: 'Delete',
+      onConfirm: async () => {
+        try { await api.del(`/tasks/${task.id}`); onSaved(); onClose(); }
+        catch (err) { setError(err.message); }
+        setDialog(null);
+      }
+    });
   };
 
   const saveFields = async () => {
@@ -146,6 +157,7 @@ export default function TaskModal({ task, buckets, fields, visible, onClose, onS
           </form>
         )}
       </div>
+      <DialogModal dialog={dialog} onClose={() => setDialog(null)} />
     </>
   );
 }

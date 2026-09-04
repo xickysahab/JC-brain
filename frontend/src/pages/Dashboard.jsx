@@ -5,6 +5,7 @@ import WidgetSettings from '../components/canvas/WidgetSettings.jsx';
 import { useHistory } from '../useHistory.js';
 import { WIDGETS, widgetDef } from '../widgets/index.jsx';
 import { Save, X, Undo2, Redo2, Plus, RotateCcw, PenTool } from 'lucide-react';
+import DialogModal from '../components/DialogModal.jsx';
 
 const BREAKPOINT = 'desktop';   // the mobile layout gets its own editor in P5
 
@@ -18,6 +19,7 @@ export default function Dashboard() {
   const [error, setError] = useState('');
   const [picking, setPicking] = useState(false);
   const [options, setOptions] = useState(null);
+  const [dialog, setDialog] = useState(null);
   const dirty = useRef(false);
 
   // What the chart config panel can offer, straight from the API that does the
@@ -45,12 +47,21 @@ export default function Dashboard() {
 
   const cancel = () => { setEditing(false); setSelectedId(null); load(); };
 
-  const resetLayout = async () => {
-    if (!confirm('Reset to the default layout? Your arrangement will be lost.')) return;
-    try {
-      const d = await api.del(`/dashboard?breakpoint=${BREAKPOINT}`);
-      reset(d.widgets); setIsDefault(true); dirty.current = false;
-    } catch (e) { setError(e.message); }
+  const resetLayout = () => {
+    setDialog({
+      type: 'confirm',
+      title: 'Reset Layout',
+      description: 'Reset to the default layout? Your arrangement will be lost.',
+      danger: true,
+      confirmLabel: 'Reset',
+      onConfirm: async () => {
+        try {
+          const d = await api.del(`/dashboard?breakpoint=${BREAKPOINT}`);
+          reset(d.widgets); setIsDefault(true); dirty.current = false;
+        } catch (e) { setError(e.message); }
+        setDialog(null);
+      }
+    });
   };
 
   const addWidget = type => {
@@ -179,6 +190,7 @@ export default function Dashboard() {
           onConfigChange={changeConfig}
         />
       )}
+      <DialogModal dialog={dialog} onClose={() => setDialog(null)} />
     </>
   );
 }

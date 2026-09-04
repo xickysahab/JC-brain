@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
+import DialogModal from '../components/DialogModal.jsx';
 
 /* Account management only. There is no route here that reads another user's
    tasks - that was the product decision, so the screen cannot offer it. */
@@ -9,6 +10,7 @@ export default function Admin({ me }) {
   const [notice, setNotice] = useState('');
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [busy, setBusy] = useState(false);
+  const [dialog, setDialog] = useState(null);
 
   const load = () => api.get('/admin/users').then(d => setUsers(d.users)).catch(e => setError(e.message));
   useEffect(() => { load(); }, []);
@@ -24,12 +26,25 @@ export default function Admin({ me }) {
     } catch (err) { setError(err.message); } finally { setBusy(false); }
   };
 
-  const resetPassword = async u => {
-    const password = prompt(`New password for ${u.email} (at least 8 characters):`);
-    if (!password) return;
-    setError(''); setNotice('');
-    try { await api.post(`/admin/users/${u.id}/password`, { password }); setNotice(`Password updated for ${u.email}.`); }
-    catch (err) { setError(err.message); }
+  const resetPassword = u => {
+    setDialog({
+      type: 'prompt',
+      title: 'Reset Password',
+      description: `New password for ${u.email} (at least 8 characters):`,
+      onConfirm: async password => {
+        if (!password) {
+          setDialog(null);
+          return;
+        }
+        setError(''); setNotice('');
+        try { 
+          await api.post(`/admin/users/${u.id}/password`, { password }); 
+          setNotice(`Password updated for ${u.email}.`); 
+        }
+        catch (err) { setError(err.message); }
+        setDialog(null);
+      }
+    });
   };
 
   const setActive = async (u, is_active) => {
@@ -96,6 +111,7 @@ export default function Admin({ me }) {
         </div>
         <button className="btn primary" disabled={busy}>{busy ? 'Creating…' : 'Create user'}</button>
       </form>
+      <DialogModal dialog={dialog} onClose={() => setDialog(null)} />
     </>
   );
 }
