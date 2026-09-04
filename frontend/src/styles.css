@@ -221,14 +221,23 @@ select{appearance:none;padding-right:30px;cursor:pointer;
 input.chip{width:auto}
 
 /* ---------- capture ---------- */
-.quick{display:flex;gap:9px;margin-bottom:24px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border-2)}
+.quick{
+  display:flex;gap:12px;margin-bottom:24px;align-items:center;padding:6px 6px 6px 18px;
+  background:var(--surface);border:1px solid var(--border-2);
+  border-radius:var(--r-pill);box-shadow:var(--shadow-md);
+  transition:border-color .2s var(--ease), box-shadow .2s var(--ease);
+}
+.quick:focus-within{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px var(--accent-soft), var(--shadow-lg);
+}
 .quick input{
-  flex:1;height:40px;font-size:16px;padding:0 8px;border:none;
+  flex:1;height:38px;font-size:15px;padding:0;border:none;
   background:transparent;color:var(--ink);
 }
 .quick input::placeholder{color:var(--ink-3)}
 .quick input:focus{outline:none;box-shadow:none}
-.quick .btn{height:34px;padding:0 16px;font-size:13.5px;border-radius:var(--r-pill)}
+.quick .btn{height:36px;padding:0 20px;font-size:13.5px;border-radius:var(--r-pill);font-weight:600}
 
 /* ---------- rows ---------- */
 .row{
