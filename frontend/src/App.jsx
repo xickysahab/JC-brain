@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { api } from './api.js';
-import Shell from './components/Shell.jsx';
-import Login from './pages/Login.jsx';
-import Todo from './pages/Todo.jsx';
-import Admin from './pages/Admin.jsx';
-import Dashboard from './pages/Dashboard.jsx';
-import Calendar from './pages/Calendar.jsx';
+import { api } from './shared/api.js';
+import Shell from './shared/Shell.jsx';
+import Login from './pages/Login/Login.jsx';
+import Tasks from './pages/Tasks/Tasks.jsx';
+import Users from './pages/Users/Users.jsx';
+import Dashboard from './pages/Dashboard/Dashboard.jsx';
+import Calendar from './pages/Calendar/Calendar.jsx';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -24,9 +24,9 @@ export default function App() {
     <Shell user={user} onSignedOut={() => setUser(null)}>
       <Routes>
         <Route path="/" element={<Dashboard />} />
-        <Route path="/todo" element={<Todo />} />
+        <Route path="/todo" element={<Tasks />} />
         <Route path="/calendar" element={<Calendar />} />
-        {user.role === 'admin' && <Route path="/admin" element={<Admin me={user} />} />}
+        {user.role === 'admin' && <Route path="/admin" element={<Users me={user} />} />}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Shell>

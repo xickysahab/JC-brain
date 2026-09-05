@@ -2,16 +2,16 @@ import 'dotenv/config';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import { parseOrigins, isAllowed } from './allowed-origin.js';
-import { requireAuth, requireAdmin } from './auth.js';
-import authRoutes from './routes/auth.js';
-import taskRoutes from './routes/tasks.js';
-import calendarRoutes from './routes/calendar.js';
-import adminRoutes from './routes/admin.js';
-import dashboardRoutes from './routes/dashboard.js';
-import statsRoutes from './routes/stats.js';
-import bucketRoutes from './routes/buckets.js';
-import prefRoutes from './routes/preferences.js';
+import { parseOrigins, isAllowed } from './shared/allowed-origin.js';
+import { requireAuth, requireAdmin } from './shared/auth.js';
+import authRoutes from './features/auth/routes.js';
+import taskRoutes from './features/tasks/routes.js';
+import calendarRoutes from './features/calendar/routes.js';
+import adminRoutes from './features/admin/routes.js';
+import dashboardRoutes from './features/dashboard/routes.js';
+import statsRoutes from './features/stats/routes.js';
+import bucketRoutes from './features/buckets/routes.js';
+import prefRoutes from './features/tasks/preferences.routes.js';
 
 const app = express();
 

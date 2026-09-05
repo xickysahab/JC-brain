@@ -1,9 +1,9 @@
 /* One-shot setup: creates the schema and the first admin user.
    Run: npm run db:setup -- admin@example.com "a-good-password" "Aagam" */
 import 'dotenv/config';
-import { pool, one } from './db.js';
+import { pool, one } from './shared/db.js';
 import { applySchema } from './migrate.js';
-import { hash, badPassword } from './auth.js';
+import { hash, badPassword } from './shared/auth.js';
 
 const [email, password, name = 'Admin'] = process.argv.slice(2);
 if (!email || !password) {

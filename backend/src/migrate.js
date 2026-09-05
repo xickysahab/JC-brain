@@ -5,7 +5,7 @@ import 'dotenv/config';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { pool } from './db.js';
+import { pool } from './shared/db.js';
 
 export async function applySchema() {
   const here = dirname(fileURLToPath(import.meta.url));
