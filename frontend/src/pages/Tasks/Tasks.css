@@ -101,3 +101,37 @@
 .fieldpick label:hover{border-color:var(--accent-line)}
 .fieldpick label:has(input:checked){border-color:var(--accent-line);background:var(--accent-soft)}
 .fieldpick input{flex:none}
+
+/* ---------- quick capture ---------- */
+.capture{margin-bottom:18px}
+.capture .quick{display:flex;gap:9px;align-items:flex-start;margin-bottom:0}
+.capture textarea{
+  flex:1;min-height:46px;height:auto;padding:12px 16px;font:15.5px/1.45 var(--sans);
+  border-radius:var(--r);resize:none;overflow-y:auto;
+}
+.capture .btn{height:46px;padding:0 20px;flex:none}
+
+.capture-read{
+  display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:9px;padding:9px 13px;
+  border:1px solid var(--line);border-radius:var(--r);background:var(--surface);
+}
+.cr-title{font-size:13.5px;font-weight:600;color:var(--ink);max-width:36ch;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cr-hint{font-size:12.5px;color:var(--ink-3)}
+.cr-hint code{font-family:var(--mono);font-size:11px;background:var(--surface-2);
+  padding:2px 6px;border-radius:4px;color:var(--ink-2)}
+.crchip{
+  display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:var(--r-pill);
+  font-family:var(--mono);font-size:10.5px;font-weight:500;border:1px solid;
+}
+.crchip.time,.crchip.date{color:var(--accent);border-color:var(--accent-line);background:var(--accent-soft)}
+.crchip.bucket{color:var(--ink-2);border-color:var(--border-2);background:var(--surface-2)}
+.crchip.priority{color:var(--red);border-color:var(--red-line);background:var(--red-soft)}
+.crchip.owner{color:var(--ink-2);border-color:var(--border-2);background:var(--surface-2)}
+.cr-keys{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--ink-3);white-space:nowrap}
+.cr-keys kbd{
+  display:inline-flex;align-items:center;gap:2px;font-family:var(--mono);font-size:10px;
+  background:var(--surface-2);border:1px solid var(--border-2);border-bottom-width:2px;
+  border-radius:4px;padding:2px 5px;margin-right:4px;color:var(--ink-2);
+}
+@media(max-width:620px){.cr-keys{display:none}}

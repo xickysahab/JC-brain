@@ -4,10 +4,10 @@ import TaskModal from './TaskModal.jsx';
 import BucketBar from './BucketBar.jsx';
 import Triage from './Triage.jsx';
 import Board from './Board.jsx';
+import QuickCapture from './QuickCapture.jsx';
 import { useBuckets, bucketColor } from '../../shared/useBuckets.js';
 import { useTaskFields } from './useTaskFields.js';
 import { Plus, Info, Check, List, Kanban, Filter, Calendar1, CalendarDays, AlertCircle, CircleDashed, CheckCircle, Search, Trash2 } from 'lucide-react';
-import * as chrono from 'chrono-node';
 import { tagClass } from '../../shared/urgency.js';
 import './Tasks.css';
 
@@ -44,7 +44,6 @@ export default function Todo() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [title, setTitle] = useState('');
   const [modal, setModal] = useState(null);      // a draft, or an existing task
   const [selected, setSelected] = useState(() => new Set());
   const [busyId, setBusyId] = useState(null);
@@ -63,40 +62,14 @@ export default function Todo() {
 
   const refresh = () => { load(); store.reload(); };
 
-  /* Add opens the modal rather than saving straight away: what was typed
-     becomes the title, and everything else is filled there - or not, since
-     Save on its own is a complete action. */
-  const add = e => {
-    e.preventDefault();
-    if (!title.trim()) return;
-
-    let draftTitle = title.trim();
-    let draftStart = null;
-    let draftDeadline = null;
-
-    const parsingText = title.replace(/\bon\s+(\d{1,2})(?:st|nd|rd|th)?\b/gi, 'on the $1 of this month');
-    const parsed = chrono.parse(parsingText, new Date(), { forwardDate: true });
-    
-    if (parsed.length > 0) {
-      const result = parsed[0];
-      if (result.start.isCertain('hour')) {
-        draftStart = result.start.date().toISOString();
-        draftDeadline = new Date(result.start.date().getTime() + 60 * 60 * 1000).toISOString();
-      } else {
-        draftDeadline = result.start.date().toISOString();
-      }
-      draftTitle = parsingText.replace(result.text, '').trim();
-      draftTitle = draftTitle.replace(/of this month/gi, '').trim() || 'New Task';
-    }
-
-    setModal({ 
-      title: draftTitle, 
-      status: 'Todo',
-      bucket_id: bucketId && bucketId !== 'none' ? bucketId : null,
-      start_date: draftStart,
-      deadline: draftDeadline
-    });
-    setTitle('');
+  /* Enter goes straight to the server. The modal is still one keystroke away
+     (⌘Enter), but it is no longer the price of capturing a thought. */
+  const create = async drafts => {
+    setError('');
+    try {
+      for (const d of drafts) await api.post('/tasks', d);
+      refresh();
+    } catch (err) { setError(err.message); }
   };
 
   const assign = async (taskId, toBucketId) => {
@@ -128,13 +101,13 @@ export default function Todo() {
         <p>Capture everything first. Sort it into buckets when you are ready.</p>
       </div>
 
-      <form className="quick" onSubmit={add}>
-        <input value={title} onChange={e => setTitle(e.target.value)}
-               placeholder="What needs doing?" aria-label="New task" />
-        <button className="btn primary" disabled={!title.trim()}>
-          <Plus size={16} /> Add
-        </button>
-      </form>
+      <QuickCapture
+        buckets={store.buckets}
+        defaultBucketId={bucketId}
+        onCreate={create}
+        onOpenForm={setModal}
+      />
+
 
       <BucketBar store={store} selected={bucketId} onSelect={setBucketId} />
 
