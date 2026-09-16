@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../shared/api.js';
 import DialogModal from '../../shared/DialogModal.jsx';
+import { undoable } from '../../shared/undo.jsx';
 
 const toLocal = iso => {
   if (!iso) return '';
@@ -54,18 +55,15 @@ export default function TaskModal({ task, buckets, fields, visible, onClose, onS
     } catch (err) { setError(err.message); } finally { setBusy(false); }
   };
 
+  /* No confirmation. The task leaves the list at once and the delete is held
+     for a few seconds; Undo cancels the call, so nothing was ever removed. */
   const remove = () => {
-    setDialog({
-      type: 'confirm',
-      title: 'Delete Task',
-      description: `Delete "${task.title}"? This cannot be undone.`,
-      danger: true,
-      confirmLabel: 'Delete',
-      onConfirm: async () => {
-        try { await api.del(`/tasks/${task.id}`); onSaved(); onClose(); }
-        catch (err) { setError(err.message); }
-        setDialog(null);
-      }
+    onClose();
+    undoable({
+      message: `Deleted "${task.title}"`,
+      hideId: task.id,
+      commit: () => api.del(`/tasks/${task.id}`).then(onSaved, onSaved),
+      revert: () => {}
     });
   };
 

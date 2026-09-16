@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { bucketColor } from '../../shared/useBuckets.js';
 import { Plus, Settings, Edit2, Trash2, Check } from 'lucide-react';
 import DialogModal from '../../shared/DialogModal.jsx';
+import { undoable } from '../../shared/undo.jsx';
 
 /* The bucket strip: filter in list mode, and the place buckets are created,
    renamed and deleted. Deleting one never deletes its tasks - they go back to
@@ -32,19 +33,11 @@ export default function BucketBar({ store, selected, onSelect, showCounts = true
     });
   };
 
-  const doRemove = b => {
-    setDialog({
-      type: 'confirm',
-      title: 'Delete Bucket',
-      description: `Delete the "${b.name}" bucket?\n\nIts ${b.task_count} task(s) will not be deleted — they move back to Uncategorised.`,
-      danger: true,
-      confirmLabel: 'Delete',
-      onConfirm: async () => {
-        await remove(b.id);
-        setDialog(null);
-      }
-    });
-  };
+  const doRemove = b => undoable({
+    message: `Deleted "${b.name}" · ${b.task_count} task(s) moved to Uncategorised`,
+    commit: () => remove(b.id),
+    revert: () => {}
+  });
 
   return (
     <>

@@ -7,6 +7,7 @@ import { WIDGETS, widgetDef } from './widgets/index.jsx';
 import { Save, X, Undo2, Redo2, Plus, RotateCcw, PenTool } from 'lucide-react';
 import DialogModal from '../../shared/DialogModal.jsx';
 import './Dashboard.css';
+import { undoable } from '../../shared/undo.jsx';
 
 const BREAKPOINT = 'desktop';   // the mobile layout gets its own editor in P5
 
@@ -48,20 +49,19 @@ export default function Dashboard() {
 
   const cancel = () => { setEditing(false); setSelectedId(null); load(); };
 
+  /* Reset is held too - the old arrangement is kept in memory so Undo really
+     restores it rather than asking the user to rebuild it. */
   const resetLayout = () => {
-    setDialog({
-      type: 'confirm',
-      title: 'Reset Layout',
-      description: 'Reset to the default layout? Your arrangement will be lost.',
-      danger: true,
-      confirmLabel: 'Reset',
-      onConfirm: async () => {
-        try {
-          const d = await api.del(`/dashboard?breakpoint=${BREAKPOINT}`);
-          reset(d.widgets); setIsDefault(true); dirty.current = false;
-        } catch (e) { setError(e.message); }
-        setDialog(null);
-      }
+    const previous = widgets;
+    api.del(`/dashboard?breakpoint=${BREAKPOINT}`)
+      .then(d => { reset(d.widgets); setIsDefault(true); dirty.current = false; })
+      .catch(e => setError(e.message));
+    undoable({
+      message: 'Layout reset to default',
+      commit: () => {},
+      revert: () => api.put('/dashboard', { breakpoint: BREAKPOINT, widgets: previous })
+        .then(d => { reset(d.widgets); setIsDefault(false); })
+        .catch(e => setError(e.message))
     });
   };
 

@@ -3,6 +3,7 @@ import { api } from '../../shared/api.js';
 import { toLocalInput, fromLocalInput } from '../../shared/dates.js';
 import DialogModal from '../../shared/DialogModal.jsx';
 import { useBuckets } from '../../shared/useBuckets.js';
+import { undoable } from '../../shared/undo.jsx';
 
 /* Handles both a brand new draft and an existing event. Events have a start
    and an end that must agree, so this one saves on a button rather than
@@ -40,17 +41,12 @@ export default function EventDrawer({ event, onClose, onChanged }) {
   };
 
   const remove = () => {
-    setDialog({
-      type: 'confirm',
-      title: 'Delete Event',
-      description: `Delete "${event.title}"? This cannot be undone.`,
-      danger: true,
-      confirmLabel: 'Delete',
-      onConfirm: async () => {
-        try { await api.del(`/calendar/events/${event.id}`); onChanged(); onClose(); }
-        catch (err) { setError(err.message); }
-        setDialog(null);
-      }
+    onClose();
+    undoable({
+      message: `Deleted "${event.title}"`,
+      hideId: event.id,
+      commit: () => api.del(`/calendar/events/${event.id}`).then(onChanged, onChanged),
+      revert: () => {}
     });
   };
 

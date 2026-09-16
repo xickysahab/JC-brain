@@ -10,6 +10,7 @@ import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import * as chrono from 'chrono-node';
 import { useBuckets, bucketColor } from '../../shared/useBuckets.js';
 import './Calendar.css';
+import { usePendingHidden } from '../../shared/undo.jsx';
 
 
 export default function Calendar() {
@@ -24,6 +25,7 @@ export default function Calendar() {
   const [timePrompt, setTimePrompt] = useState(null);
 
   const { buckets } = useBuckets();
+  const hidden = usePendingHidden();
 
   const [from, to, days] = useMemo(() => {
     if (view === 'month') { const f = monthGridStart(anchor); return [f, addDays(f, 42), 42]; }
@@ -160,7 +162,7 @@ export default function Calendar() {
       : { background: col, borderColor: col, color: 'var(--accent-ink)' };
   };
 
-  const eventsOn = day => data.events.filter(ev => sameDay(ev.start_at, day));
+  const eventsOn = day => data.events.filter(ev => !hidden.has(ev.id) && sameDay(ev.start_at, day));
   
   // Time-blocked tasks that act like events
   const tasksOn = day => data.tasks

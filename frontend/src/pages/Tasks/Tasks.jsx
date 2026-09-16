@@ -10,6 +10,7 @@ import { useTaskFields } from './useTaskFields.js';
 import { Plus, Info, Check, List, Kanban, Filter, Calendar1, CalendarDays, AlertCircle, CircleDashed, CheckCircle, Search, Trash2 } from 'lucide-react';
 import { tagClass } from '../../shared/urgency.js';
 import './Tasks.css';
+import { usePendingHidden } from '../../shared/undo.jsx';
 
 const VIEWS = [
   { id: 'open',     label: 'Open', icon: CircleDashed },
@@ -48,6 +49,7 @@ export default function Todo() {
   const [selected, setSelected] = useState(() => new Set());
   const [busyId, setBusyId] = useState(null);
   const store = useBuckets();
+  const hidden = usePendingHidden();
   const fieldPrefs = useTaskFields();
 
   const load = useCallback(async () => {
@@ -89,9 +91,10 @@ export default function Todo() {
   };
   const toggleSel = id => setSelected(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
+  const shown = tasks.filter(t => !hidden.has(t.id));
   const visible = mode === 'list' && bucketId
-    ? tasks.filter(t => (bucketId === 'none' ? !t.bucket_id : t.bucket_id === bucketId))
-    : tasks;
+    ? shown.filter(t => (bucketId === 'none' ? !t.bucket_id : t.bucket_id === bucketId))
+    : shown;
   const [emptyTitle, emptyHint] = EMPTY[view] || ['No matches', ''];
 
   return (
@@ -184,10 +187,10 @@ export default function Todo() {
 
       {loading ? [0, 1, 2].map(i => <div key={i} className="skel" />)
         : mode === 'triage' ? (
-          <Triage tasks={tasks} buckets={store.buckets} onAssign={assign}
+          <Triage tasks={shown} buckets={store.buckets} onAssign={assign}
                   onOpen={id => setModal(tasks.find(t => t.id === id))} busyId={busyId} />
         ) : mode === 'board' ? (
-          <Board tasks={tasks} buckets={store.buckets} onAssign={assign} onOpen={id => setModal(tasks.find(t => t.id === id))} />
+          <Board tasks={shown} buckets={store.buckets} onAssign={assign} onOpen={id => setModal(tasks.find(t => t.id === id))} />
         ) : !visible.length ? (
           <div className="empty"><strong>{emptyTitle}</strong>{emptyHint}</div>
         ) : visible.map(t => {
