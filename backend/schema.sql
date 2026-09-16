@@ -140,3 +140,24 @@ alter table users add column if not exists task_fields jsonb;
 -- written as '' while every sibling took null. The modal sends null for any
 -- blank field, so the odd one out is the column, not the caller.
 alter table tasks alter column description drop not null;
+
+-- Phase 6 -------------------------------------------------------------------
+
+-- One row per browser a user has enabled reminders in.
+create table if not exists push_subscriptions (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid not null references users(id) on delete cascade,
+  endpoint    text not null unique,
+  p256dh      text not null,
+  auth        text not null,
+  created_at  timestamptz not null default now()
+);
+create index if not exists push_user_idx on push_subscriptions(user_id);
+
+-- What has already been sent, so a reminder fires once and not every minute.
+create table if not exists reminders_sent (
+  task_id  uuid not null references tasks(id) on delete cascade,
+  kind     text not null,
+  sent_at  timestamptz not null default now(),
+  primary key (task_id, kind)
+);

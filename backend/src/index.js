@@ -12,6 +12,8 @@ import dashboardRoutes from './features/dashboard/routes.js';
 import statsRoutes from './features/stats/routes.js';
 import bucketRoutes from './features/buckets/routes.js';
 import prefRoutes from './features/tasks/preferences.routes.js';
+import pushRoutes from './features/reminders/routes.js';
+import { startReminderLoop } from './features/reminders/worker.js';
 
 const app = express();
 
@@ -46,6 +48,7 @@ app.use('/api/dashboard', requireAuth, dashboardRoutes);
 app.use('/api/stats', requireAuth, statsRoutes);
 app.use('/api/buckets', requireAuth, bucketRoutes);
 app.use('/api/preferences', requireAuth, prefRoutes);
+app.use('/api/push', requireAuth, pushRoutes);
 app.use('/api/admin', requireAuth, requireAdmin, adminRoutes);
 
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
@@ -57,4 +60,7 @@ app.use((err, req, res, _next) => {
 });
 
 const port = process.env.PORT || 4000;
-app.listen(port, () => console.log(`API on http://localhost:${port}`));
+app.listen(port, () => {
+  console.log(`API on http://localhost:${port}`);
+  startReminderLoop();
+});

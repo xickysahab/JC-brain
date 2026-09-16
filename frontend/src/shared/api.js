@@ -24,5 +24,5 @@ export const api = {
   post:  (p, b) => call('POST', p, b),
   put:   (p, b) => call('PUT', p, b),
   patch: (p, b) => call('PATCH', p, b),
-  del:   p      => call('DELETE', p)
+  del:   (p, b) => call('DELETE', p, b)
 };

@@ -5,6 +5,7 @@ import { LayoutDashboard, CheckSquare, CalendarDays, Users, Menu, LogOut, Shield
 import './Shell.css';
 import { Toaster } from './undo.jsx';
 import CommandPalette from './CommandPalette.jsx';
+import Reminders from './Reminders.jsx';
 
 const NAV = [
   { to: '/',         label: 'Dashboard', icon: LayoutDashboard },
@@ -64,6 +65,7 @@ export default function Shell({ user, onSignedOut, children }) {
             {new Date().toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
           </span>
           <span className="grow" />
+          <Reminders />
           {counts.overdue > 0 && <span className="tag hot"><ShieldAlert size={14} /> {counts.overdue} overdue</span>}
           {counts.sos > 0 && <span className="tag hot"><ShieldAlert size={14} /> {counts.sos} SOS</span>}
         </header>

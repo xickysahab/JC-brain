@@ -87,3 +87,5 @@
 .cmdk-list .l{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
 .cmdk-list .h{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
 .cmdk-empty{margin:0;padding:26px 18px;text-align:center;color:var(--ink-3);font-size:13.5px}
+
+.btn.remind.on{border-color:var(--accent-line);color:var(--accent);background:var(--accent-soft)}
