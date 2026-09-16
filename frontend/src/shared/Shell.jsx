@@ -4,6 +4,7 @@ import { api } from '../shared/api.js';
 import { LayoutDashboard, CheckSquare, CalendarDays, Users, Menu, LogOut, ShieldAlert } from 'lucide-react';
 import './Shell.css';
 import { Toaster } from './undo.jsx';
+import CommandPalette from './CommandPalette.jsx';
 
 const NAV = [
   { to: '/',         label: 'Dashboard', icon: LayoutDashboard },
@@ -70,6 +71,7 @@ export default function Shell({ user, onSignedOut, children }) {
       </div>
 
       <Toaster />
+      <CommandPalette user={user} />
     </div>
   );
 }

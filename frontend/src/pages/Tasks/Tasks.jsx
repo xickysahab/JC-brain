@@ -64,6 +64,28 @@ export default function Todo() {
 
   const refresh = () => { load(); store.reload(); };
 
+  /* The command palette navigates here and leaves a note about what it wanted.
+     Reading it on arrival is what makes ⌘K land on a task rather than a page. */
+  useEffect(() => {
+    const jump = () => {
+      const b = sessionStorage.getItem('jc.jump.bucket');
+      const t = sessionStorage.getItem('jc.jump.task');
+      const f = sessionStorage.getItem('jc.jump.focus');
+      sessionStorage.removeItem('jc.jump.bucket');
+      sessionStorage.removeItem('jc.jump.task');
+      sessionStorage.removeItem('jc.jump.focus');
+      if (b) { setMode('list'); setBucketId(b); }
+      if (f === 'capture') document.querySelector('.capture textarea')?.focus();
+      if (t) api.get(`/tasks?view=all`).then(d => {
+        const found = d.tasks.find(x => x.id === t);
+        if (found) setModal(found);
+      }).catch(() => {});
+    };
+    jump();
+    window.addEventListener('jc:jump', jump);
+    return () => window.removeEventListener('jc:jump', jump);
+  }, []);
+
   /* Enter goes straight to the server. The modal is still one keystroke away
      (⌘Enter), but it is no longer the price of capturing a thought. */
   const create = async drafts => {
