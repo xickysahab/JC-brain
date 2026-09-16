@@ -6,6 +6,10 @@
      that Vercel domain to CORS_ORIGINS on the backend. */
 const BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
 
+/** A URL a browser can navigate to directly - for a file download, where a
+    fetch would only put the bytes in memory. */
+export const apiUrl = path => `${BASE}/api${path}`;
+
 async function call(method, path, body) {
   const res = await fetch(`${BASE}/api${path}`, {
     method,

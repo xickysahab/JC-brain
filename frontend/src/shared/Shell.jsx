@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { api } from '../shared/api.js';
-import { LayoutDashboard, CheckSquare, CalendarDays, Users, Menu, LogOut, ShieldAlert, KeyRound } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, CalendarDays, Users, Menu, LogOut, ShieldAlert, KeyRound, CloudOff } from 'lucide-react';
 import './Shell.css';
 import { Toaster } from './undo.jsx';
 import CommandPalette from './CommandPalette.jsx';
 import Reminders from './Reminders.jsx';
+import { useOnline } from './useOnline.js';
 
 const NAV = [
   { to: '/',         label: 'Dashboard', icon: LayoutDashboard },
@@ -17,10 +18,14 @@ export default function Shell({ user, onSignedOut, children }) {
   // Sidebar slides out; on a narrow screen it starts hidden.
   const [open, setOpen] = useState(() => window.innerWidth > 760);
   const [counts, setCounts] = useState({});
+  const online = useOnline();
 
   useEffect(() => { api.get('/tasks/counts').then(setCounts).catch(() => {}); }, []);
 
   const signOut = async () => {
+    // The offline cache holds this user's tasks. Signing out on a shared
+    // machine has to take that with it, not just the cookie.
+    try { await caches?.delete('jc-data-v1'); } catch { /* no Cache API here */ }
     try { await api.post('/auth/logout'); } finally { onSignedOut(); }
   };
 
@@ -69,6 +74,7 @@ export default function Shell({ user, onSignedOut, children }) {
             {new Date().toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
           </span>
           <span className="grow" />
+          {!online && <span className="tag warn"><CloudOff size={14} /> Offline — showing the last data loaded</span>}
           <Reminders />
           {counts.overdue > 0 && <span className="tag hot"><ShieldAlert size={14} /> {counts.overdue} overdue</span>}
           {counts.sos > 0 && <span className="tag hot"><ShieldAlert size={14} /> {counts.sos} SOS</span>}

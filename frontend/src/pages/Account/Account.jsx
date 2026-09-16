@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { api } from '../../shared/api.js';
-import { KeyRound } from 'lucide-react';
+import { api, apiUrl } from '../../shared/api.js';
+import { KeyRound, Download } from 'lucide-react';
 
 /* Changing your own password. The API has always had the route; until now
    there was no screen for it, which meant the only way to rotate a password
@@ -55,6 +55,18 @@ export default function Account({ user }) {
         </div>
         <button className="btn primary" disabled={busy}>{busy ? 'Saving…' : 'Change password'}</button>
       </form>
+
+      <div className="card" style={{ maxWidth: 460, marginTop: 16 }}>
+        <h3><Download size={16} style={{ verticalAlign: '-3px', marginRight: 8 }} />Export your tasks</h3>
+        <p className="muted" style={{ margin: '0 0 12px' }}>
+          Every task you have, with its buckets, dates and checklists. CSV opens in a
+          spreadsheet; JSON keeps the structure for moving it somewhere else.
+        </p>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <a className="btn" href={apiUrl('/tasks/export?format=csv')}>CSV</a>
+          <a className="btn" href={apiUrl('/tasks/export?format=json')}>JSON</a>
+        </div>
+      </div>
     </>
   );
 }

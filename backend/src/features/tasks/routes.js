@@ -4,6 +4,7 @@ import { one, many } from '../../shared/db.js';
 import { rank, endOfWeek } from '../../shared/score.js';
 import { FIELDS, fieldDef } from './fields.js';
 import { nextInstance } from './recurrence.js';
+import { toCsv, COLUMNS, filename } from './export.js';
 
 const r = Router();
 
@@ -150,6 +151,19 @@ async function spawnNext(user, task, now = new Date()) {
   const vals = [user.id, user.account_id, ...Object.values(row)];
   return one(`insert into tasks (${cols.join(',')}) values (${vals.map((_, i) => '$' + (i + 1))}) returning *`, vals);
 }
+
+/* Every task this user has, in a file they can open anywhere. Scoped by
+   user_id like everything else, so an export is only ever your own. */
+r.get('/export', async (req, res) => {
+  const json = String(req.query.format || 'csv').toLowerCase() === 'json';
+  const rows = await many(`${SELECT} ${scoped} order by t.created_at`, [req.user.id]);
+
+  res.setHeader('Content-Disposition', `attachment; filename="${filename(json ? 'json' : 'csv')}"`);
+  if (json) return res.type('application/json').send(JSON.stringify({ exported_at: new Date().toISOString(), tasks: rows }, null, 2));
+
+  // The BOM is what stops Excel reading a name with an accent as mojibake.
+  res.type('text/csv; charset=utf-8').send('\uFEFF' + toCsv(rows, COLUMNS));
+});
 
 r.post('/', async (req, res) => {
   const { set, errors } = buildPatch(req.body || {});
