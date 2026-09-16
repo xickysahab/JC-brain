@@ -1,4 +1,5 @@
 import { addDays, isToday, fmtRange, hourOf, layOut, DAY_NAMES } from '../../shared/dates.js';
+import { Liftable } from '../../shared/motion/lift.jsx';
 
 export const DAY_START = 6;      // the grid runs 06:00 - 23:00
 const DAY_END = 23;
@@ -8,7 +9,7 @@ export const HOURS = Array.from({ length: DAY_END - DAY_START }, (_, i) => DAY_S
 /* Week and day share one component - a day is simply a week of one column. */
 export default function TimeGrid({
   from, days, eventsOn, tasksOn, dueTasksOn,
-  getBucketStyle, onDragStart, onDrop, allowDrop, onOpenNew, onOpenEvent
+  getBucketStyle, zone, payloadFor, onOpenNew, onOpenEvent
 }) {
   return (
     <div className="grid">
@@ -30,25 +31,28 @@ export default function TimeGrid({
               ))}
             </div>
             <div className="gbody" style={{ height: HOURS.length * HOUR_PX }}>
-              {HOURS.map(h => (
-                <div key={h} className="gslot" style={{ height: HOUR_PX }}
-                     onDragOver={allowDrop} onDrop={e => onDrop(e, day, h)}
-                     onDoubleClick={() => onOpenNew(day, h)} />
-              ))}
+              {HOURS.map(h => {
+                const drop = `hour:${+day}:${h}`;
+                return (
+                  <div key={h} data-drop={drop} style={{ height: HOUR_PX }}
+                       className={'gslot' + (zone.over === drop ? ' dropping' : '')}
+                       onDoubleClick={() => onOpenNew(day, h)} />
+                );
+              })}
               {laid.map(ev => {
                 const top = Math.max(0, (hourOf(ev.start_at) - DAY_START) * HOUR_PX);
                 const bottom = Math.min(HOURS.length * HOUR_PX, (hourOf(ev.end_at) - DAY_START) * HOUR_PX);
                 const width = 100 / (ev.lanes || 1);
                 return (
-                  <button key={ev.id} className="gevent" draggable
-                          style={{ top, height: Math.max(24, bottom - top),
-                                   left: `${ev.lane * width}%`, width: `calc(${width}% - 3px)`,
-                                   ...getBucketStyle(ev.bucket_id, ev.isTask) }}
-                          onDragStart={e => onDragStart(e, ev, ev.isTask ? 'task' : 'event')}
-                          onClick={() => !ev.isTask && onOpenEvent(ev)}>
+                  <Liftable key={ev.id} className="gevent" zone={zone} label={ev.title}
+                            payload={payloadFor(ev, ev.isTask ? 'task' : 'event')}
+                            style={{ top, height: Math.max(24, bottom - top),
+                                     left: `${ev.lane * width}%`, width: `calc(${width}% - 3px)`,
+                                     ...getBucketStyle(ev.bucket_id, ev.isTask) }}
+                            onClick={() => !ev.isTask && onOpenEvent(ev)}>
                     <b>{ev.title}</b>
                     <span>{fmtRange(ev.start_at, ev.end_at)}</span>
-                  </button>
+                  </Liftable>
                 );
               })}
             </div>

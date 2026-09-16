@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../../shared/api.js';
+import { useLiftZone, LiftGhost } from '../../shared/motion/lift.jsx';
 import EventDrawer from './EventDrawer.jsx';
 import TimePromptModal from './TimePromptModal.jsx';
 import MonthGrid from './MonthGrid.jsx';
@@ -108,32 +109,37 @@ export default function Calendar() {
     } catch (err) { setError(err.message); } finally { setQuickBusy(false); }
   };
 
-  const onDragStart = (e, item, type) => {
-    e.dataTransfer.effectAllowed = 'move';
-    if (type === 'event' || (type === 'task' && item.start_date)) {
-      const st = type === 'event' ? item.start_at : item.start_date;
-      const en = type === 'event' ? item.end_at : item.deadline;
-      e.dataTransfer.setData('text/plain', JSON.stringify({
-        type, id: item.id,
-        ms: new Date(en) - new Date(st),
-        h: new Date(st).getHours(),
-        m: new Date(st).getMinutes()
-      }));
-    } else if (type === 'task') {
-      // unscheduled task dragging
-      e.dataTransfer.setData('text/plain', JSON.stringify({
-        type, id: item.id, ms: 60 * 60 * 1000, h: 10, m: 0
-      }));
-    }
+  /* What is being carried. An event and a time-blocked task both keep their
+     length and their time of day, so dropping one on a new day moves it
+     without silently reshaping it; a task with no time yet gets an hour at
+     ten, which the prompt can still override. */
+  const liftPayload = (item, type) => {
+    const st = type === 'event' ? item.start_at : item.start_date;
+    if (!st) return { type, id: item.id, ms: 60 * 60 * 1000, h: 10, m: 0 };
+    const en = type === 'event' ? item.end_at : item.deadline;
+    const d = new Date(st);
+    return { type, id: item.id, ms: new Date(en) - d, h: d.getHours(), m: d.getMinutes() };
   };
 
-  const drop = async (e, day, hour) => {
-    e.preventDefault();
-    e.stopPropagation(); // prevent triggering the sidebar drop if it's inside
-    let payload; try { payload = JSON.parse(e.dataTransfer.getData('text/plain')); } catch { return; }
+  /* One drop handler for the whole page. Targets name themselves in the DOM
+     with data-drop, so adding one is markup rather than wiring. */
+  const zone = useLiftZone(async (payload, target) => {
     if (!payload?.id) return;
 
-    if (hour == null && payload.type === 'task') {
+    if (target === 'unschedule') {
+      if (payload.type !== 'task') return;
+      try { await api.patch(`/tasks/${payload.id}`, { start_date: null, deadline: null }); load(); }
+      catch (err) { setError(err.message); }
+      return;
+    }
+
+    const [kind, dayMs, hourStr] = target.split(':');
+    if (kind !== 'day' && kind !== 'hour') return;
+    const day = new Date(Number(dayMs));
+    const hour = kind === 'hour' ? Number(hourStr) : null;
+
+    // A month cell has no time in it, so an unscheduled task has to be asked.
+    if (hour == null && payload.type === 'task' && payload.h === 10 && payload.m === 0) {
       setTimePrompt({ day, payload });
       return;
     }
@@ -147,14 +153,14 @@ export default function Calendar() {
       if (payload.type === 'event') {
         await api.patch(`/calendar/events/${payload.id}`,
           { start_at: start.toISOString(), end_at: end.toISOString() });
-      } else if (payload.type === 'task') {
+      } else {
         await api.patch(`/tasks/${payload.id}`,
           { start_date: start.toISOString(), deadline: end.toISOString() });
       }
       load();
     } catch (err) { setError(err.message); }
-  };
-  
+  });
+
   const handleTimePromptConfirm = async (startDate, endDate) => {
     if (!timePrompt) return;
     try {
@@ -165,18 +171,6 @@ export default function Calendar() {
     setTimePrompt(null);
   };
 
-  const dropUnschedule = async e => {
-    e.preventDefault();
-    let payload; try { payload = JSON.parse(e.dataTransfer.getData('text/plain')); } catch { return; }
-    if (!payload?.id || payload.type !== 'task') return;
-
-    try {
-      await api.patch(`/tasks/${payload.id}`, { start_date: null, deadline: null });
-      load();
-    } catch (err) { setError(err.message); }
-  };
-
-  const allowDrop = e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
 
   const getBucketStyle = (bucket_id, isTask = false) => {
     if (!bucket_id) return {};
@@ -242,25 +236,28 @@ export default function Calendar() {
       {error && <div className="err">{error}</div>}
       {loading && <div className="muted" style={{ marginBottom: 8 }}>Loading…</div>}
 
-      <div className="calwrap">
+      {/* While something is in the air the chips step out of the way, so the
+          hit test reaches the hour underneath an event instead of stopping on
+          the event itself. */}
+      <div className={'calwrap' + (zone.lift ? ' lifting' : '')}>
         <div className="calmain">
           {view === 'month' ? (
             <MonthGrid from={from} days={days} anchor={anchor}
                        eventsOn={eventsOn} tasksOn={tasksOn} dueTasksOn={dueTasksOn}
-                       getBucketStyle={getBucketStyle} onDragStart={onDragStart}
-                       onDrop={drop} allowDrop={allowDrop}
+                       getBucketStyle={getBucketStyle} zone={zone} payloadFor={liftPayload}
                        onOpenNew={openNew} onOpenEvent={setDrawer} />
           ) : (
             <TimeGrid from={from} days={days}
                       eventsOn={eventsOn} tasksOn={tasksOn} dueTasksOn={dueTasksOn}
-                      getBucketStyle={getBucketStyle} onDragStart={onDragStart}
-                      onDrop={drop} allowDrop={allowDrop}
+                      getBucketStyle={getBucketStyle} zone={zone} payloadFor={liftPayload}
                       onOpenNew={openNew} onOpenEvent={setDrawer} />
           )}
         </div>
         <UnscheduledPanel tasks={unscheduledTasks} buckets={buckets}
-                          onDragStart={onDragStart} onDrop={dropUnschedule} allowDrop={allowDrop} />
+                          zone={zone} payloadFor={liftPayload} />
       </div>
+
+      <LiftGhost lift={zone.lift} />
 
       {drawer && <EventDrawer event={drawer} onClose={() => setDrawer(null)} onChanged={load} />}
       {timePrompt && (

@@ -191,3 +191,18 @@
 
 /* a repeating task, in the capture chips and on the row */
 .crchip.repeat{color:var(--series-6);border-color:var(--border-2);background:var(--surface-2)}
+
+/* ---------- a card in the air ---------- */
+/* The original stays in place, dimmed, so the column never collapses under the
+   finger mid-drag - the card is lifted out, not removed. */
+.bcards article.lifting{opacity:.32}
+.jc-board-lift{
+  position:fixed;z-index:40;pointer-events:none;
+  padding:11px 12px;border-radius:var(--r);
+  background:var(--mat-thick);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));
+  border:1px solid var(--accent-line);box-shadow:var(--shadow-lg);
+  /* Held slightly larger and tilted: it reads as picked up rather than slid. */
+  transform:scale(1.03) rotate(-1.2deg);
+}
+.jc-board-lift.flying{opacity:.55;transform:scale(.96) rotate(0deg);transition:opacity .2s var(--ease)}
+.bcol.over{border-color:var(--accent);background:var(--accent-soft)}

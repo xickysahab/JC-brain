@@ -74,3 +74,11 @@
   background:var(--surface-hover);border-radius:0 0 12px 12px;
   display:flex;justify-content:flex-end;gap:8px;
 }
+
+/* Something is being carried: existing chips must not intercept the drop. */
+.calwrap.lifting .gevent,
+.calwrap.lifting .mchip,
+.calwrap.lifting .unscheduled article{pointer-events:none}
+.gslot.dropping{background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent-line)}
+.mcell.dropping{background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent-line)}
+.bcol.unscheduled.dropping{border-color:var(--accent);background:var(--accent-soft)}
