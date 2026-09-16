@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { NavLink } from 'react-router-dom';
 import { api } from '../shared/api.js';
@@ -9,6 +9,9 @@ import CommandPalette from './CommandPalette.jsx';
 import Reminders from './Reminders.jsx';
 import { useOnline } from './useOnline.js';
 import { SPRING, spring } from './motion/spring.js';
+
+const readRail = () =>
+  parseInt(getComputedStyle(document.documentElement).getPropertyValue('--rail'), 10) || 264;
 
 const NAV = [
   { to: '/',         label: 'Dashboard', icon: LayoutDashboard },
@@ -21,16 +24,16 @@ export default function Shell({ user, onSignedOut, children }) {
   const [open, setOpen] = useState(() => window.innerWidth > 760);
   const [counts, setCounts] = useState({});
   const online = useOnline();
-  const railRef = useRef(null);
-  const [railWidth, setRailWidth] = useState(0);
-
   /* The rail slides on a spring, so a second click during the slide re-targets
-     the same motion instead of queueing behind it. Its width is measured
-     rather than assumed: the breakpoint changes --rail, and a hard-coded
-     number would leave a gap at exactly the size where it shows. */
-  useLayoutEffect(() => {
-    const measure = () => setRailWidth(railRef.current?.offsetWidth || 0);
-    measure();
+     the same motion instead of queueing behind it.
+
+     Its width comes from the --rail token, read during the first render rather
+     than measured from the element afterwards. Measuring cost a frame at zero,
+     and on a phone - where the rail starts closed - that frame was the
+     sidebar flashing open and sliding shut on every single page load. */
+  const [railWidth, setRailWidth] = useState(readRail);
+  useEffect(() => {
+    const measure = () => setRailWidth(readRail());
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
   }, []);
@@ -47,7 +50,6 @@ export default function Shell({ user, onSignedOut, children }) {
   return (
     <div className="shell">
       <motion.nav
-        ref={railRef}
         className="rail"
         aria-label="Sections"
         aria-hidden={!open}

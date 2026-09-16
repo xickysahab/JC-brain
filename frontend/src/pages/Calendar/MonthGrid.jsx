@@ -27,7 +27,7 @@ export default function MonthGrid({
             {[...eventsOn(day), ...tasksOn(day)]
               .sort((a, b) => new Date(a.start_at) - new Date(b.start_at))
               .map(ev => (
-                <Liftable key={ev.id} className="mchip" zone={zone} label={ev.title}
+                <Liftable key={ev.id} className="mchip" zone={zone} ghost={ev.title}
                           payload={payloadFor(ev, ev.isTask ? 'task' : 'event')}
                           style={getBucketStyle(ev.bucket_id, ev.isTask)}
                           onClick={() => !ev.isTask && onOpenEvent(ev)}>

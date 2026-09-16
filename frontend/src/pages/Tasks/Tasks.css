@@ -114,6 +114,14 @@
 }
 .capture .btn{height:46px;padding:0 20px;flex:none}
 
+/* A pill cannot be two lines tall. Once there is no room to sit side by side,
+   the capture box becomes a rounded rectangle and the button drops under it. */
+@media(max-width:620px){
+  .capture .quick{flex-wrap:wrap;border-radius:var(--r-lg);padding:8px}
+  .capture textarea{min-width:0}
+  .capture .btn{width:100%;border-radius:var(--r-sm)}
+}
+
 .capture-read{
   display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:9px;padding:9px 13px;
   border:1px solid var(--line);border-radius:var(--r);background:var(--surface);
@@ -194,15 +202,8 @@
 
 /* ---------- a card in the air ---------- */
 /* The original stays in place, dimmed, so the column never collapses under the
-   finger mid-drag - the card is lifted out, not removed. */
+   finger mid-drag - the card is lifted out, not removed. And while something
+   is carried, the cards beneath must not intercept the drop. */
 .bcards article.lifting{opacity:.32}
-.jc-board-lift{
-  position:fixed;z-index:40;pointer-events:none;
-  padding:11px 12px;border-radius:var(--r);
-  background:var(--mat-thick);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));
-  border:1px solid var(--accent-line);box-shadow:var(--shadow-lg);
-  /* Held slightly larger and tilted: it reads as picked up rather than slid. */
-  transform:scale(1.03) rotate(-1.2deg);
-}
-.jc-board-lift.flying{opacity:.55;transform:scale(.96) rotate(0deg);transition:opacity .2s var(--ease)}
-.bcol.over{border-color:var(--accent);background:var(--accent-soft)}
+.board.lifting .bcards article{pointer-events:none}
+.bcol.dropping{border-color:var(--accent);background:var(--accent-soft)}

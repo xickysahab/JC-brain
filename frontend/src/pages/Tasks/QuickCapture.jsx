@@ -113,7 +113,7 @@ export default function QuickCapture({ buckets, defaultBucketId, onCreate, onOpe
           onChange={e => setText(e.target.value)}
           onKeyDown={onKeyDown}
           onPaste={onPaste}
-          placeholder="What needs doing?  try: proposal to Zenith tomorrow 3pm #sales !sos"
+          placeholder="What needs doing?"
           aria-label="Capture a task"
           disabled={busy}
         />

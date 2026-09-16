@@ -11,16 +11,12 @@
        picks up at the speed the finger left at, so there is no seam between
        dragging and settling. */
 
-/* Apple describes springs with damping and response rather than mass and
-   stiffness; Motion spells the same two as bounce and duration. Overshoot is
-   reserved for motion the user's own hand started - a menu that merely
-   appeared has no momentum to express. */
-export const SPRING = {
-  ui:    { type: 'spring', bounce: 0,    duration: 0.35 },  // the default: settles, never bounces
-  move:  { type: 'spring', bounce: 0,    duration: 0.4  },  // repositioning something
-  sheet: { type: 'spring', bounce: 0.18, duration: 0.3  },  // a surface arriving
-  flick: { type: 'spring', bounce: 0.22, duration: 0.4  }   // only after a throw
-};
+/* The one preset Motion needs from us. Apple describes springs with damping
+   and response rather than mass and stiffness; Motion spells the same two as
+   bounce and duration. A surface arriving gets the faintest overshoot - real
+   momentum, the kind a hand started, is the gesture layer's business and goes
+   straight to springTo below. */
+export const SPRING = { sheet: { type: 'spring', bounce: 0.18, duration: 0.3 } };
 
 /** Where a flick would come to rest, by the same exponential decay a scroll
     uses. Snap to the target nearest *this*, not nearest the release point -
@@ -41,13 +37,6 @@ export function resist(value, min, max, dimension) {
   if (value < min) return min - rubberband(min - value, dimension);
   if (value > max) return max + rubberband(value - max, dimension);
   return value;
-}
-
-/** The snap point closest to a position. Returns the position itself when
-    there is nothing to snap to. */
-export function nearest(value, points) {
-  if (!points?.length) return value;
-  return points.reduce((best, p) => (Math.abs(p - value) < Math.abs(best - value) ? p : best), points[0]);
 }
 
 /* Velocity has to be measured over a short window, not between the last two

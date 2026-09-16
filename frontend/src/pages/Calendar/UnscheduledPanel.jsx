@@ -16,7 +16,7 @@ export default function UnscheduledPanel({ tasks, buckets, zone, payloadFor }) {
         {!tasks.length ? <p className="bempty">Everything has a time.</p> : tasks.map(t => {
           const bucket = buckets.find(b => b.id === t.bucket_id);
           return (
-            <Liftable key={t.id} as="article" zone={zone} label={t.title}
+            <Liftable key={t.id} as="article" zone={zone} ghost={t.title}
                       payload={payloadFor(t, 'task')}>
               <div className="ctitle">{t.title}</div>
               <div className="rmeta">

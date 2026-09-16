@@ -44,7 +44,7 @@ export default function TimeGrid({
                 const bottom = Math.min(HOURS.length * HOUR_PX, (hourOf(ev.end_at) - DAY_START) * HOUR_PX);
                 const width = 100 / (ev.lanes || 1);
                 return (
-                  <Liftable key={ev.id} className="gevent" zone={zone} label={ev.title}
+                  <Liftable key={ev.id} className="gevent" zone={zone} ghost={ev.title}
                             payload={payloadFor(ev, ev.isTask ? 'task' : 'event')}
                             style={{ top, height: Math.max(24, bottom - top),
                                      left: `${ev.lane * width}%`, width: `calc(${width}% - 3px)`,

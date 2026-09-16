@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { project, rubberband, resist, nearest, velocityTracker,
+import { project, rubberband, resist, velocityTracker,
          springStep, springAtRest } from './spring.js';
 
 test('projection grows with speed and flips with direction', () => {
@@ -29,12 +29,6 @@ test('resist passes through inside the bounds and resists outside', () => {
   assert.equal(resist(50, 0, 100, 400), 50);
   assert.ok(resist(-40, 0, 100, 400) > -40 && resist(-40, 0, 100, 400) < 0, 'below the floor');
   assert.ok(resist(140, 0, 100, 400) < 140 && resist(140, 0, 100, 400) > 100, 'above the ceiling');
-});
-
-test('nearest picks the closest snap point, or passes through with none', () => {
-  assert.equal(nearest(63, [0, 50, 100]), 50);
-  assert.equal(nearest(76, [0, 50, 100]), 100);
-  assert.equal(nearest(63, []), 63);
 });
 
 test('velocity is read over a window, not between the last two events', () => {

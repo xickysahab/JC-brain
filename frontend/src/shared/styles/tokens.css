@@ -93,6 +93,11 @@
   --ease:cubic-bezier(.32,.72,0,1);      /* the CSS stand-in for a settled spring */
 }
 
+/* The rail is narrower on a phone. It belongs here rather than in Shell.css:
+   both selectors are :root, so whichever stylesheet the bundler happens to
+   emit last would win - and it was not this one. */
+@media (max-width:760px){ :root{ --rail:236px } }
+
 @media (prefers-color-scheme: light){
   :root{
     color-scheme: light;

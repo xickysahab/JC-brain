@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../shared/api.js';
-import DialogModal from '../../shared/DialogModal.jsx';
 import Checklist from './Checklist.jsx';
 import { Scrim, Surface } from '../../shared/motion/Surface.jsx';
 import { undoable } from '../../shared/undo.jsx';
@@ -23,7 +22,6 @@ export default function TaskModal({ show, anchor, task, buckets, fields, visible
   const [busy, setBusy] = useState(false);
   const [picking, setPicking] = useState(false);
   const [picked, setPicked] = useState(visible);
-  const [dialog, setDialog] = useState(null);
 
   useEffect(() => { setDraft(task); }, [task]);
   useEffect(() => { setPicked(visible); }, [visible]);
@@ -169,7 +167,6 @@ export default function TaskModal({ show, anchor, task, buckets, fields, visible
           </form>
         )}
       </Surface>
-      <DialogModal dialog={dialog} onClose={() => setDialog(null)} />
     </>
   );
 }

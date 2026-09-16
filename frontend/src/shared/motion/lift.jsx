@@ -18,27 +18,35 @@ const targetAt = (x, y) =>
 
 /**
  * @param {(payload:any, target:string) => void} onDrop
+ * @param {{release?: (x:number,y:number,vx:number,vy:number) => number[]}} [opts]
+ *   release maps where the finger let go to where the throw was aimed - the
+ *   board projects a flick at its columns, the calendar drops on the hour it
+ *   is over. Identity by default.
  * @returns {{lift:object|null, over:string|null, api:object}}
  */
-export function useLiftZone(onDrop) {
+export function useLiftZone(onDrop, { release = (x, y) => [x, y] } = {}) {
   const [lift, setLift] = useState(null);
   const [over, setOver] = useState(null);
 
   const api = {
-    start(payload, label, { grabX, grabY, x, y }, width) {
-      setLift({ payload, label, grabX, grabY, x, y, width });
+    start(payload, ghost, { grabX, grabY, x, y }, width) {
+      setLift({ payload, ghost, grabX, grabY, x, y, width });
     },
     move(x, y) {
       setLift(l => (l ? { ...l, x, y } : l));
       setOver(targetAt(x, y));
     },
-    end(payload, { x, y, cancelled }) {
+    end(payload, { x, y, vx, vy, cancelled }) {
       // The ghost has to go before the hit test, or the pointer finds the
       // ghost instead of what is underneath it.
       setLift(null);
       setOver(null);
       if (cancelled) return;
-      const target = targetAt(x, y);
+      /* The throw picks the target when it lands on one. When it does not -
+         the projection sailed off the edge of a scrolling board, or over a gap
+         - where the finger actually let go wins. Losing the drop entirely
+         because the physics overshot is the worst of both. */
+      const target = targetAt(...release(x, y, vx, vy)) ?? targetAt(x, y);
       if (target) onDrop(payload, target);
     }
   };
@@ -48,14 +56,16 @@ export function useLiftZone(onDrop) {
 
 /** Something that can be picked up. A short press that never passes the drag
     threshold is still a click, so one element can be both. */
-export function Liftable({ zone, payload, label, as: Tag = 'button', onClick, children, ...rest }) {
+export function Liftable({ zone, payload, ghost, as: Tag = 'button', onClick, children, ...rest }) {
   const ref = useRef(null);
   const moved = useRef(false);
 
   const { onPointerDown } = useDrag({
     onStart: e => {
       moved.current = true;
-      zone.api.start(payload, label, e, ref.current?.getBoundingClientRect().width);
+      // Nothing passed a ghost? Carry what is written on the thing itself.
+      zone.api.start(payload, ghost ?? ref.current?.textContent, e,
+                     ref.current?.getBoundingClientRect().width);
     },
     onMove: ({ x, y }) => zone.api.move(x, y),
     onEnd: e => zone.api.end(payload, e)
@@ -81,9 +91,9 @@ export function LiftGhost({ lift }) {
   return createPortal(
     <div className="jc-lift" style={{
       left: lift.x - lift.grabX, top: lift.y - lift.grabY,
-      width: lift.width ? Math.min(lift.width, 260) : undefined
+      width: lift.width ? Math.min(lift.width, 300) : undefined
     }}>
-      {lift.label}
+      {lift.ghost}
     </div>,
     document.body
   );

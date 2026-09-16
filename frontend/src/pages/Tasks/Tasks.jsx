@@ -8,7 +8,7 @@ import QuickCapture from './QuickCapture.jsx';
 import { useListKeys } from './useListKeys.js';
 import { useBuckets, bucketColor } from '../../shared/useBuckets.js';
 import { useTaskFields } from './useTaskFields.js';
-import { Plus, Info, Check, List, Kanban, Filter, Calendar1, CalendarDays, AlertCircle, CircleDashed, CheckCircle, Search, Trash2, Repeat, ListChecks } from 'lucide-react';
+import { Check, List, Kanban, Filter, Calendar1, CalendarDays, AlertCircle, CircleDashed, CheckCircle, Search, Trash2, Repeat, ListChecks } from 'lucide-react';
 import { tagClass } from '../../shared/urgency.js';
 import './Tasks.css';
 import { usePendingHidden } from '../../shared/undo.jsx';

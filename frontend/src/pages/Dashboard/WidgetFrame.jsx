@@ -97,8 +97,7 @@ export default function WidgetFrame({
 
   return (
     <div
-      className={'wframe' + (editing ? ' editing' : '') + (selected ? ' selected' : '')
-                 + (move.dragging || resize.dragging ? ' grabbed' : '')}
+      className={'wframe' + (editing ? ' editing' : '') + (selected ? ' selected' : '')}
       style={{
         left: widget.x, top: widget.y, width: widget.w, height: widget.h, zIndex: widget.z,
         transform: offset ? `translate3d(${offset.x}px, ${offset.y}px, 0)` : undefined

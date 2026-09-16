@@ -40,7 +40,7 @@
 
 /* Floating chrome, not a fixed strip: content scrolls underneath it. */
 .topbar{
-  display:flex;align-items:center;gap:14px;padding:15px 24px;flex:none;
+  display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;padding:15px 24px;flex:none;
   background:var(--mat-regular);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));
   position:sticky;top:0;z-index:9;
 }
@@ -59,10 +59,12 @@
   letter-spacing:var(--track-small)}
 .content{flex:1;overflow-y:auto;padding:28px 22px 72px;max-width:1400px;width:100%}
 @media(max-width:760px){
-  :root{--rail:236px}
   .rail{position:absolute;z-index:20;height:100%;box-shadow:var(--shadow-lg)}
   .content{padding:20px 16px 64px}
 }
+/* The status chips are the first thing to go when there is no room for them;
+   the date goes next. Neither is worth a sideways scrollbar. */
+@media(max-width:620px){ .topbar .stamp{display:none} }
 
 /* ---------- undo toast ---------- */
 /* Centred with auto margins rather than a translate: transform is the motion
@@ -112,12 +114,14 @@
 /* ---------- something held between two places ---------- */
 .jc-lift{
   position:fixed;z-index:80;pointer-events:none;
-  max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  padding:7px 11px;border-radius:var(--r-sm);font-size:12.5px;font-weight:500;
+  max-width:300px;overflow:hidden;
+  padding:8px 11px;border-radius:var(--r-sm);font-size:12.5px;font-weight:500;
   background:var(--mat-thick);backdrop-filter:blur(var(--blur));-webkit-backdrop-filter:blur(var(--blur));
   color:var(--ink);border:1px solid var(--accent-line);box-shadow:var(--shadow-lg);
   /* Held a little larger and tilted, so it reads as lifted off the surface. */
   transform:scale(1.04) rotate(-1.5deg);
 }
+/* A plain text ghost stays on one line; a card-shaped one keeps its rows. */
+.jc-lift > .ctitle{margin-bottom:4px}
 /* The target under the pointer, wherever it is. */
 [data-drop].dropping{background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent-line)}

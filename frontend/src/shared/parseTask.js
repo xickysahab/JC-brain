@@ -115,7 +115,3 @@ export function parseTask(raw, { buckets = [], now = new Date() } = {}) {
   out.title = title || original;
   return out;
 }
-
-/** True when the line carries more than just a title - the UI only shows the
-    chip row when there is something to show. */
-export const hasExtras = parsed => parsed.chips.length > 0;

@@ -23,6 +23,5 @@ export const pool = new pg.Pool({
 
 pool.on('error', err => console.error('Unexpected Postgres pool error', err));
 
-export const q = (text, params) => pool.query(text, params);
 export const one = async (text, params) => (await pool.query(text, params)).rows[0] || null;
 export const many = async (text, params) => (await pool.query(text, params)).rows;
