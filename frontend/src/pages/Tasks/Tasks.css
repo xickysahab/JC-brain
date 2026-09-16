@@ -149,3 +149,12 @@
 /* a row that exists on screen but not yet on the server */
 .row.pending{opacity:.62}
 .row.pending .score{visibility:hidden}
+
+/* a bucket the app is guessing, not one the user typed - dashed until accepted */
+.crchip.guess{
+  border-style:dashed;border-color:var(--border-2);color:var(--ink-3);
+  background:transparent;gap:6px;cursor:pointer;
+}
+.crchip.guess:hover{border-color:var(--accent-line);color:var(--accent)}
+.crchip.guess kbd{font-family:var(--mono);font-size:9px;border:1px solid currentColor;
+  border-radius:3px;padding:0 4px;opacity:.75}

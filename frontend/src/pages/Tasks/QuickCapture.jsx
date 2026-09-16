@@ -1,6 +1,7 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, CornerDownLeft } from 'lucide-react';
 import { parseTask } from '../../shared/parseTask.js';
+import { api } from '../../shared/api.js';
 
 const CHIP_ORDER = { time: 0, date: 0, bucket: 1, priority: 2, owner: 3 };
 
@@ -14,11 +15,26 @@ const CHIP_ORDER = { time: 0, date: 0, bucket: 1, priority: 2, owner: 3 };
    checked before it is committed. */
 export default function QuickCapture({ buckets, defaultBucketId, onCreate, onOpenForm, busy }) {
   const [text, setText] = useState('');
+  const [hint, setHint] = useState(null);       // a bucket this title has gone to before
+  const [accepted, setAccepted] = useState(null);
   const inputRef = useRef(null);
 
   // chrono is not free; only re-parse when the line actually changes.
   const parsed = useMemo(() => parseTask(text, { buckets }), [text, buckets]);
   const chips = [...parsed.chips].sort((a, b) => CHIP_ORDER[a.kind] - CHIP_ORDER[b.kind]);
+
+  /* Ask where this has been filed before, once the typing pauses. Debounced
+     rather than per keystroke, and skipped entirely when a #bucket was typed -
+     an explicit choice is never second-guessed. */
+  useEffect(() => {
+    if (parsed.bucket_id || parsed.title.trim().length < 3) { setHint(null); return; }
+    const id = setTimeout(() => {
+      api.get(`/buckets/suggest?title=${encodeURIComponent(parsed.title)}`)
+        .then(d => setHint(d.suggestion))
+        .catch(() => setHint(null));
+    }, 300);
+    return () => clearTimeout(id);
+  }, [parsed.title, parsed.bucket_id]);
 
   const draft = () => ({
     title: parsed.title,
@@ -27,7 +43,7 @@ export default function QuickCapture({ buckets, defaultBucketId, onCreate, onOpe
     start_date: parsed.start_date,
     priority: parsed.priority,
     owner: parsed.owner,
-    bucket_id: parsed.bucket_id || (defaultBucketId !== 'none' ? defaultBucketId : null) || null
+    bucket_id: parsed.bucket_id || accepted || (defaultBucketId !== 'none' ? defaultBucketId : null) || null
   });
 
   const submit = async e => {
@@ -43,11 +59,19 @@ export default function QuickCapture({ buckets, defaultBucketId, onCreate, onOpe
         })
       : [draft()];
     setText('');
+    setHint(null);
+    setAccepted(null);
     await onCreate(drafts);
     inputRef.current?.focus();
   };
 
   const onKeyDown = e => {
+    // Tab takes the suggestion. One key, and only when there is one to take.
+    if (e.key === 'Tab' && hint && !accepted) {
+      e.preventDefault();
+      setAccepted(hint.id);
+      return;
+    }
     if (e.key !== 'Enter') return;
     e.preventDefault();
     if (e.metaKey || e.ctrlKey) {            // the escape hatch into the full form
@@ -69,6 +93,14 @@ export default function QuickCapture({ buckets, defaultBucketId, onCreate, onOpe
   };
 
   const lineCount = text.split('\n').filter(l => l.trim()).length;
+
+  const suggestionChip = hint && (
+    accepted === hint.id
+      ? <span className="crchip bucket">{hint.name}</span>
+      : <button type="button" className="crchip guess" onClick={() => setAccepted(hint.id)}>
+          {hint.name} <kbd>tab</kbd>
+        </button>
+  );
 
   return (
     <div className="capture">
@@ -95,11 +127,15 @@ export default function QuickCapture({ buckets, defaultBucketId, onCreate, onOpe
             <>
               <span className="cr-title">{parsed.title}</span>
               {chips.map((c, i) => <span key={i} className={'crchip ' + c.kind}>{c.label}</span>)}
+              {suggestionChip}
             </>
           ) : (
-            <span className="cr-hint">
-              Add <code>tomorrow 3pm</code>, <code>#bucket</code>, <code>!sos</code> or <code>@name</code> to fill more in one line
-            </span>
+            <>
+              {suggestionChip}
+              <span className="cr-hint">
+                Add <code>tomorrow 3pm</code>, <code>#bucket</code>, <code>!sos</code> or <code>@name</code> to fill more in one line
+              </span>
+            </>
           )}
           <span className="grow" />
           <span className="cr-keys">

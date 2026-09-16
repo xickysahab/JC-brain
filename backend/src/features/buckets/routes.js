@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { one, many } from '../../shared/db.js';
+import { buildModel, suggest } from './suggest.js';
 
 const r = Router();
 const MAX = 40;
@@ -24,6 +25,28 @@ r.get('/', async (req, res) => {
     [req.user.id]
   );
   res.json({ buckets, unbucketed: Number(loose) });
+});
+
+/* Which bucket this title has historically belonged to.
+
+   The scoring lives on the server and only on the server. Shipping a copy to
+   the client to save a round trip would mean two implementations of the same
+   judgement, and the day they disagree the app suggests one thing and files
+   another. The client debounces instead, which costs one request per pause. */
+r.get('/suggest', async (req, res) => {
+  const title = String(req.query.title || '');
+  if (title.trim().length < 3) return res.json({ suggestion: null });
+
+  const tasks = await many(
+    'select title, bucket_id from tasks where user_id = $1 and bucket_id is not null limit 2000',
+    [req.user.id]
+  );
+  const hit = suggest(title, buildModel(tasks));
+  if (!hit) return res.json({ suggestion: null });
+
+  const bucket = await one('select id, name, color from buckets where id = $1 and user_id = $2',
+                           [hit.bucket_id, req.user.id]);
+  res.json({ suggestion: bucket ? { ...bucket, score: hit.score } : null });
 });
 
 r.post('/', async (req, res) => {
