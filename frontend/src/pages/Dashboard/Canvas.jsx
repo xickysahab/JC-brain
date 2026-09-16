@@ -2,6 +2,9 @@ import { useEffect, useRef } from 'react';
 import WidgetFrame, { MIN_W, MIN_H } from './WidgetFrame.jsx';
 import { widgetDef } from './widgets/index.jsx';
 
+/* A key event dispatched on window has no .matches; guard before asking. */
+const isField = el => el instanceof Element && el.matches('input, textarea, select, [contenteditable]');
+
 const SNAP = 8;
 const snapTo = (v, on) => (on ? Math.round(v / SNAP) * SNAP : Math.round(v));
 
@@ -35,7 +38,7 @@ export default function Canvas({
   useEffect(() => {
     if (!editing || !selectedId) return;
     const onKey = e => {
-      if (e.target.matches('input, textarea, select')) return;
+      if (isField(e.target)) return;
       if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); onRemove(selectedId); return; }
       const step = e.shiftKey ? 20 : snap ? SNAP : 1;
       const delta = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];

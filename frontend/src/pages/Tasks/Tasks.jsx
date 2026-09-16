@@ -5,6 +5,7 @@ import BucketBar from './BucketBar.jsx';
 import Triage from './Triage.jsx';
 import Board from './Board.jsx';
 import QuickCapture from './QuickCapture.jsx';
+import { useListKeys } from './useListKeys.js';
 import { useBuckets, bucketColor } from '../../shared/useBuckets.js';
 import { useTaskFields } from './useTaskFields.js';
 import { Plus, Info, Check, List, Kanban, Filter, Calendar1, CalendarDays, AlertCircle, CircleDashed, CheckCircle, Search, Trash2 } from 'lucide-react';
@@ -117,6 +118,16 @@ export default function Todo() {
   const visible = mode === 'list' && bucketId
     ? shown.filter(t => (bucketId === 'none' ? !t.bucket_id : t.bucket_id === bucketId))
     : shown;
+  const [focusIdx] = useListKeys({
+    tasks: visible,
+    buckets: store.buckets,
+    enabled: mode === 'list',
+    onOpen: setModal,
+    onToggleDone: toggleDone,
+    onAssign: assign,
+    onSelect: toggleSel
+  });
+
   const [emptyTitle, emptyHint] = EMPTY[view] || ['No matches', ''];
 
   return (
@@ -219,7 +230,7 @@ export default function Todo() {
           const closed = t.status === 'Done' || t.status === 'Cancelled';
           const b = store.buckets.find(x => x.id === t.bucket_id);
           return (
-            <div key={t.id} className={'row' + (closed ? ' closed' : '')} onClick={() => setModal(t)}>
+            <div key={t.id} className={'row' + (closed ? ' closed' : '') + (visible[focusIdx]?.id === t.id ? ' focused' : '')} onClick={() => setModal(t)}>
               <input type="checkbox" className="apple-checkbox" checked={selected.has(t.id)} 
                      onClick={e => e.stopPropagation()}
                      onChange={() => toggleSel(t.id)}
@@ -244,6 +255,19 @@ export default function Todo() {
             </div>
           );
         })}
+
+      {mode === 'list' && visible.length > 0 && (
+        <div className="keyhints">
+          <span><kbd>j</kbd><kbd>k</kbd> move</span>
+          <span><kbd>e</kbd> open</span>
+          <span><kbd>d</kbd> done</span>
+          <span><kbd>x</kbd> select</span>
+          <span><kbd>1</kbd>–<kbd>9</kbd> bucket</span>
+          <span><kbd>c</kbd> capture</span>
+          <span><kbd>/</kbd> search</span>
+          <span><kbd>⌘K</kbd> anything</span>
+        </div>
+      )}
 
       {modal && fieldPrefs.ready && (
         <TaskModal

@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Undo2, X } from 'lucide-react';
 
+/* A key event dispatched on window has no .matches; guard before asking. */
+const isField = el => el instanceof Element && el.matches('input, textarea, select, [contenteditable]');
+
 /* Undo instead of confirm.
 
    A confirmation charges every user a click to protect against a mistake most
@@ -73,7 +76,7 @@ export function Toaster() {
     const onKey = e => {
       if (!pending) return;
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
-        if (e.target.matches('input, textarea, [contenteditable]')) return;
+        if (isField(e.target)) return;
         e.preventDefault();
         pending.undo();
       }
