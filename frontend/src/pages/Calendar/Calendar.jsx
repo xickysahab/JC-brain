@@ -6,11 +6,11 @@ import MonthGrid from './MonthGrid.jsx';
 import TimeGrid, { DAY_START, HOUR_PX } from './TimeGrid.jsx';
 import UnscheduledPanel from './UnscheduledPanel.jsx';
 import { addDays, addMonths, monthGridStart, sameDay, startOfDay, startOfMonth, startOfWeek } from '../../shared/dates.js';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Wand2 } from 'lucide-react';
 import * as chrono from 'chrono-node';
 import { useBuckets, bucketColor } from '../../shared/useBuckets.js';
 import './Calendar.css';
-import { usePendingHidden } from '../../shared/undo.jsx';
+import { usePendingHidden, undoable } from '../../shared/undo.jsx';
 
 
 export default function Calendar() {
@@ -40,6 +40,32 @@ export default function Calendar() {
     } catch (err) { setError(err.message); } finally { setLoading(false); }
   }, [from, to]);
   useEffect(() => { load(); }, [load]);
+
+  const [planning, setPlanning] = useState(false);
+
+  /* One button, no dialog. The working day is the window; the server fills the
+     gaps it finds and hands back what each task's times used to be, so the
+     whole plan reverses in one undo rather than task by task. */
+  const planMyDay = async () => {
+    const day = view === 'month' ? new Date() : anchor;
+    const from = new Date(day); from.setHours(9, 0, 0, 0);
+    const to = new Date(day); to.setHours(18, 0, 0, 0);
+    setPlanning(true); setError('');
+    try {
+      const d = await api.post('/calendar/plan', { from: from.toISOString(), to: to.toISOString(), minutes: 30 });
+      if (view === 'month') setAnchor(startOfDay(day));
+      load();
+      if (!d.planned) { setError('No free time in the working day, or nothing left to schedule.'); return; }
+      undoable({
+        message: `Planned ${d.planned} task${d.planned === 1 ? '' : 's'}` +
+                 (d.unplaced ? ` · ${d.unplaced} did not fit` : ''),
+        commit: () => {},
+        revert: () => Promise.all(d.placements.map(pl =>
+          api.patch(`/tasks/${pl.id}`, { start_date: null, deadline: pl.was.deadline })
+        )).then(load).catch(e => setError(e.message))
+      });
+    } catch (e) { setError(e.message); } finally { setPlanning(false); }
+  };
 
   const step = dir => setAnchor(a =>
     view === 'month' ? addMonths(a, dir) : addDays(a, dir * (view === 'week' ? 7 : 1)));
@@ -204,6 +230,10 @@ export default function Calendar() {
             {v[0].toUpperCase() + v.slice(1)}
           </button>
         ))}
+        <button className="btn sm" onClick={planMyDay} disabled={planning}
+                title="Fill the working day from your task list">
+          <Wand2 size={16} /> {planning ? 'Planning…' : 'Plan my day'}
+        </button>
         <button className="btn sm primary" onClick={() => openNew(anchor)}>
           <Plus size={16} /> New event
         </button>

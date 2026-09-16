@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { one, many } from '../../shared/db.js';
+import { planDay, DEFAULT_MINUTES } from './plan.js';
 
 const r = Router();
 
@@ -28,6 +29,50 @@ r.get('/', async (req, res) => {
            order by deadline`, [req.user.id, from, to])
   ]);
   res.json({ events, tasks });
+});
+
+/* Fill a day from the task list.
+
+   The ranking and the calendar both already exist; this walks one against the
+   other and writes the result in a single request, because a "plan my day"
+   that ends in a dialog has not planned anyone's day. Each task's previous
+   times travel back in the response, so the whole plan is one undo. */
+r.post('/plan', async (req, res) => {
+  const from = new Date(req.body?.from), to = new Date(req.body?.to);
+  if (isNaN(from) || isNaN(to) || to <= from)
+    return res.status(400).json({ error: 'A valid working window is required' });
+  const minutes = Math.min(240, Math.max(15, Number(req.body?.minutes) || DEFAULT_MINUTES));
+
+  const [events, scheduled, candidates] = await Promise.all([
+    many('select start_at, end_at from events where user_id = $1 and start_at < $3 and end_at > $2',
+         [req.user.id, from, to]),
+    many(`select start_date as start_at, deadline as end_at from tasks
+           where user_id = $1 and start_date is not null and deadline is not null
+             and start_date < $3 and deadline > $2`, [req.user.id, from, to]),
+    many(`select id, title, status, priority, deadline, created_at, updated_at
+            from tasks
+           where user_id = $1 and start_date is null
+             and status in ('Todo','In Progress')`, [req.user.id])
+  ]);
+
+  const { placements, unplaced } = planDay({
+    tasks: candidates, busy: [...events, ...scheduled],
+    from: from.toISOString(), to: to.toISOString(), minutes
+  });
+
+  const byId = new Map(candidates.map(t => [t.id, t]));
+  const applied = [];
+  for (const pl of placements) {
+    const before = byId.get(pl.id);
+    const row = await one(
+      `update tasks set start_date = $3, deadline = $4, updated_at = now()
+        where id = $2 and user_id = $1 returning id`,
+      [req.user.id, pl.id, pl.start_at, pl.end_at]
+    );
+    if (row) applied.push({ ...pl, was: { start_date: null, deadline: before?.deadline ?? null } });
+  }
+
+  res.json({ planned: applied.length, unplaced: unplaced.length, placements: applied });
 });
 
 const TEXT = ['title', 'location', 'attendees', 'notes', 'bucket_id'];
