@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../shared/api.js';
 import DialogModal from '../../shared/DialogModal.jsx';
+import Checklist from './Checklist.jsx';
 import { undoable } from '../../shared/undo.jsx';
 
 const toLocal = iso => {
@@ -84,6 +85,8 @@ export default function TaskModal({ task, buckets, fields, visible, onClose, onS
         return <input type="number" step="any" value={v ?? ''} onChange={e => set(f.key, e.target.value)} />;
       case 'datetime':
         return <input type="datetime-local" value={toLocal(v)} onChange={e => set(f.key, fromLocal(e.target.value))} />;
+      case 'checklist':
+        return <Checklist items={v} onChange={val => set(f.key, val)} />;
       case 'bucket':
         return (
           <select value={v || ''} onChange={e => set(f.key, e.target.value || null)}>

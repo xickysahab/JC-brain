@@ -8,7 +8,7 @@ import QuickCapture from './QuickCapture.jsx';
 import { useListKeys } from './useListKeys.js';
 import { useBuckets, bucketColor } from '../../shared/useBuckets.js';
 import { useTaskFields } from './useTaskFields.js';
-import { Plus, Info, Check, List, Kanban, Filter, Calendar1, CalendarDays, AlertCircle, CircleDashed, CheckCircle, Search, Trash2 } from 'lucide-react';
+import { Plus, Info, Check, List, Kanban, Filter, Calendar1, CalendarDays, AlertCircle, CircleDashed, CheckCircle, Search, Trash2, Repeat, ListChecks } from 'lucide-react';
 import { tagClass } from '../../shared/urgency.js';
 import './Tasks.css';
 import { usePendingHidden } from '../../shared/undo.jsx';
@@ -262,6 +262,10 @@ export default function Todo() {
                   <span className={tagClass(t.label)}>{t.label}</span>
                   {b && <span className="tag"><i className="dot" style={{ background: bucketColor(b) }} />{b.name}</span>}
                   {t.deadline && <span className="tag">due {fmt(t.deadline)}</span>}
+                  {t.repeat && <span className="tag"><Repeat size={11} /> {t.repeat}</span>}
+                  {t.subtasks?.length > 0 && (
+                    <span className="tag"><ListChecks size={11} /> {t.subtasks.filter(s => s.done).length}/{t.subtasks.length}</span>
+                  )}
                   {t.priority && t.priority !== 'SOS' && <span className="tag">{t.priority}</span>}
                   {t.owner && <span className="tag">@{t.owner}</span>}
                   {t.client && <span className="tag">#{t.client}</span>}

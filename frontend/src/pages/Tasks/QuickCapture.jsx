@@ -3,7 +3,7 @@ import { Plus, CornerDownLeft } from 'lucide-react';
 import { parseTask } from '../../shared/parseTask.js';
 import { api } from '../../shared/api.js';
 
-const CHIP_ORDER = { time: 0, date: 0, bucket: 1, priority: 2, owner: 3 };
+const CHIP_ORDER = { time: 0, date: 0, repeat: 1, bucket: 2, priority: 3, owner: 4 };
 
 /* The whole capture surface.
 
@@ -43,6 +43,7 @@ export default function QuickCapture({ buckets, defaultBucketId, onCreate, onOpe
     start_date: parsed.start_date,
     priority: parsed.priority,
     owner: parsed.owner,
+    repeat: parsed.repeat,
     bucket_id: parsed.bucket_id || accepted || (defaultBucketId !== 'none' ? defaultBucketId : null) || null
   });
 
@@ -54,7 +55,7 @@ export default function QuickCapture({ buckets, defaultBucketId, onCreate, onOpe
       ? lines.map(line => {
           const one = parseTask(line, { buckets });
           return { title: one.title, status: 'Todo', deadline: one.deadline, start_date: one.start_date,
-                   priority: one.priority, owner: one.owner,
+                   priority: one.priority, owner: one.owner, repeat: one.repeat,
                    bucket_id: one.bucket_id || (defaultBucketId !== 'none' ? defaultBucketId : null) || null };
         })
       : [draft()];

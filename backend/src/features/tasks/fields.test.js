@@ -35,7 +35,7 @@ test('the default choice is itself valid', () => {
 });
 
 test('every enum field declares its options, every field a type', () => {
-  const types = new Set(['text', 'textarea', 'enum', 'bool', 'number', 'datetime', 'bucket']);
+  const types = new Set(['text', 'textarea', 'enum', 'bool', 'number', 'datetime', 'bucket', 'checklist']);
   for (const f of FIELDS) {
     assert.ok(types.has(f.type), `${f.key} has an unknown type ${f.type}`);
     if (f.type === 'enum') assert.ok(Array.isArray(f.options) && f.options.length, `${f.key} needs options`);

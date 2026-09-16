@@ -88,3 +88,38 @@ test('bucket matching ignores case', () => {
   assert.equal(p('x #SALES').bucket_id, 'b1');
   assert.equal(p('x #sales').bucket_id, 'b1');
 });
+
+test('repeat rules come out of the line and out of the title', () => {
+  const now = new Date('2026-09-16T08:00:00');
+  const cases = [
+    ['Standup every weekday',      'Weekdays',    'Standup'],
+    ['Invoice run every month',    'Monthly',     'Invoice run'],
+    ['Weekly review every week',   'Weekly',      'Weekly review'],
+    ['Payroll every 2 weeks',      'Fortnightly', 'Payroll'],
+    ['Water plants daily',         'Daily',       'Water plants'],
+    ['Renew domain annually',      'Yearly',      'Renew domain']
+  ];
+  for (const [line, rule, title] of cases) {
+    const p = parseTask(line, { now });
+    assert.equal(p.repeat, rule, line);
+    assert.equal(p.title, title, line);
+  }
+});
+
+test('"every monday" is weekly and still lands on a Monday', () => {
+  const p = parseTask('Team sync every monday 10am', { now: new Date('2026-09-16T08:00:00') });
+  assert.equal(p.repeat, 'Weekly');
+  assert.equal(p.title, 'Team sync');
+  assert.equal(new Date(p.start_date).getDay(), 1);
+});
+
+test('a rule word inside a title is left alone', () => {
+  // "weekly" here names the report, not a schedule - only a trailing adverb
+  // (or an explicit "every ...") is read as one.
+  const p = parseTask('Ship the weekly report draft', { now: new Date('2026-09-16T08:00:00') });
+  assert.equal(p.repeat, null);
+  assert.equal(p.title, 'Ship the weekly report draft');
+  const plain = parseTask('Call the vendor back', { now: new Date('2026-09-16T08:00:00') });
+  assert.equal(plain.repeat, null);
+  assert.equal(plain.title, 'Call the vendor back');
+});

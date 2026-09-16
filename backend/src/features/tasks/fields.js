@@ -1,6 +1,8 @@
 /* One description of the task form, used by the API to whitelist writes and by
    the client to render the modal. Two lists would drift; this one cannot. */
 
+import { RULES } from './recurrence.js';
+
 export const FIELDS = [
   { key: 'description',       label: 'Description',    type: 'textarea' },
   { key: 'status',            label: 'Status',         type: 'enum', options: ['Todo', 'In Progress', 'Done', 'Cancelled'], required: true },
@@ -9,6 +11,8 @@ export const FIELDS = [
   { key: 'deadline',          label: 'Deadline',       type: 'datetime' },
   { key: 'start_date',        label: 'Start date',     type: 'datetime' },
   { key: 'follow_up_date',    label: 'Follow-up date', type: 'datetime' },
+  { key: 'repeat',            label: 'Repeat',         type: 'enum', options: RULES },
+  { key: 'subtasks',          label: 'Checklist',      type: 'checklist' },
   { key: 'owner',             label: 'Owner',          type: 'text' },
   { key: 'client',            label: 'Client',         type: 'text' },
   { key: 'project',           label: 'Project',        type: 'text' },
@@ -25,7 +29,7 @@ export const FIELDS = [
     never something the user can switch off. */
 export const ALWAYS = ['title'];
 
-export const DEFAULT_VISIBLE = ['description', 'status', 'priority', 'bucket_id', 'deadline', 'owner'];
+export const DEFAULT_VISIBLE = ['description', 'status', 'priority', 'bucket_id', 'deadline', 'subtasks'];
 
 const BY_KEY = new Map(FIELDS.map(f => [f.key, f]));
 export const fieldDef = key => BY_KEY.get(key);

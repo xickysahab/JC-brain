@@ -9,6 +9,21 @@ import * as chrono from 'chrono-node';
    is a parser the user cannot trust: the chips are how they check the guess
    before pressing Enter, and how they notice when it guessed wrong. */
 
+/* Repeat rules in two forms. The explicit "every ..." is tried first and can
+   sit anywhere; the bare adverb only counts at the end of the line, because
+   "Ship the weekly report" is a title, not a schedule. */
+const REPEATS = [
+  [/\bevery\s+weekdays?\b/i,                              /\bweekdays\b\s*$/i,               'Weekdays'],
+  [/\bevery\s+(?:2|two)\s+weeks\b|\bevery\s+fortnight\b/i, /\bfortnightly\b\s*$/i,           'Fortnightly'],
+  [/\bevery\s+day\b/i,                                    /\bdaily\b\s*$/i,                  'Daily'],
+  [/\bevery\s+week\b/i,                                   /\bweekly\b\s*$/i,                 'Weekly'],
+  [/\bevery\s+month\b/i,                                  /\bmonthly\b\s*$/i,                'Monthly'],
+  [/\bevery\s+year\b/i,                                   /\b(?:yearly|annually)\b\s*$/i,    'Yearly']
+];
+/* "every monday" is a weekly rule whose day chrono can read - so only the
+   word "every" comes out, and the weekday is left for the date parser. */
+const EVERY_WEEKDAY = /\bevery\s+(?=mon|tues?|wed|thur?s?|fri|sat|sun)/i;
+
 const PRIORITIES = { sos: 'SOS', urgent: 'SOS', high: 'High', med: 'Medium', medium: 'Medium', low: 'Low' };
 
 const fmtDate = d => d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
@@ -19,7 +34,7 @@ export function parseTask(raw, { buckets = [], now = new Date() } = {}) {
   const original = String(raw || '').trim();
   const out = {
     title: original, deadline: null, start_date: null,
-    bucket_id: null, priority: null, owner: null, chips: []
+    bucket_id: null, priority: null, owner: null, repeat: null, chips: []
   };
   if (!original) return out;
 
@@ -59,6 +74,23 @@ export function parseTask(raw, { buckets = [], now = new Date() } = {}) {
     chip('owner', '@' + name);
     return ' ';
   });
+
+  // Repeat before chrono: chrono reads "every week" as a date and eats it.
+  for (const form of [0, 1]) {
+    if (out.repeat) break;
+    for (const entry of REPEATS) {
+      const re = entry[form];
+      if (!re.test(text)) continue;
+      out.repeat = entry[2];
+      text = text.replace(re, ' ');
+      break;
+    }
+  }
+  if (!out.repeat && EVERY_WEEKDAY.test(text)) {
+    out.repeat = 'Weekly';
+    text = text.replace(EVERY_WEEKDAY, ' ');
+  }
+  if (out.repeat) chip('repeat', out.repeat);
 
   // Dates last, so the tokens above cannot be mistaken for part of a date.
   // chrono reads "on 6" as a weekday unless it is told the 6th is a date.

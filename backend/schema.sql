@@ -161,3 +161,15 @@ create table if not exists reminders_sent (
   sent_at  timestamptz not null default now(),
   primary key (task_id, kind)
 );
+
+-- Phase 7 -------------------------------------------------------------------
+
+-- A repeating task is a template: finishing it leaves the next copy behind.
+-- The rule is a name, not a cron string - see features/tasks/recurrence.js.
+alter table tasks add column if not exists repeat text
+  check (repeat is null or repeat in ('Daily','Weekdays','Weekly','Fortnightly','Monthly','Yearly'));
+
+-- Subtasks live on the task rather than in their own table: they are always
+-- read with their parent and never queried on their own, so a column is the
+-- whole feature. [{ id, title, done }]
+alter table tasks add column if not exists subtasks jsonb not null default '[]'::jsonb;

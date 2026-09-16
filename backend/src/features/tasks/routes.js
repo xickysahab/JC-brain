@@ -1,7 +1,9 @@
+import { randomUUID } from 'node:crypto';
 import { Router } from 'express';
 import { one, many } from '../../shared/db.js';
 import { rank, endOfWeek } from '../../shared/score.js';
 import { FIELDS, fieldDef } from './fields.js';
+import { nextInstance } from './recurrence.js';
 
 const r = Router();
 
@@ -51,6 +53,18 @@ function buildPatch(body) {
           if (def.required) errors.push(`${key} cannot be empty`); else set[key] = null;
         } else if (!def.options.includes(v)) errors.push(`Unknown ${key}`);
         else set[key] = v;
+        break;
+      }
+      case 'checklist': {
+        // A checklist is stored whole, so it is also validated whole: anything
+        // that is not a titled step is dropped rather than half-written.
+        const items = (Array.isArray(v) ? v : [])
+          .map(s => ({ id: String(s?.id || '').slice(0, 40) || randomUUID(),
+                       title: String(s?.title ?? '').trim().slice(0, 300),
+                       done: s?.done === true }))
+          .filter(s => s.title)
+          .slice(0, 100);
+        set[key] = JSON.stringify(items);
         break;
       }
       case 'bucket':
@@ -123,6 +137,20 @@ r.get('/counts', async (req, res) => {
   });
 });
 
+/* Finishing a repeating task leaves the next copy behind. It runs on the
+   transition into Done, never on a task that was already Done - otherwise
+   re-saving a finished task would breed copies of it. */
+async function spawnNext(user, task, now = new Date()) {
+  if (task.status !== 'Done' || task.prev_status === 'Done' || !task.repeat) return null;
+  const row = nextInstance(task, now);
+  if (!row) return null;
+  if (Array.isArray(row.subtasks)) row.subtasks = JSON.stringify(row.subtasks);
+
+  const cols = ['user_id', 'account_id', ...Object.keys(row)];
+  const vals = [user.id, user.account_id, ...Object.values(row)];
+  return one(`insert into tasks (${cols.join(',')}) values (${vals.map((_, i) => '$' + (i + 1))}) returning *`, vals);
+}
+
 r.post('/', async (req, res) => {
   const { set, errors } = buildPatch(req.body || {});
   if (!set.title?.trim()) errors.push('Title is required');
@@ -145,12 +173,18 @@ r.patch('/:id', async (req, res) => {
 
   const keys = Object.keys(set);
   const assigns = keys.map((k, i) => `${k} = $${i + 3}`).join(', ');
+  // prev_status rides along so the write knows whether this is the moment the
+  // task was finished, which is the only moment a repeat should fire.
   const task = await one(
-    `update tasks set ${assigns}, updated_at = now() where id = $2 and user_id = $1 returning *`,
+    `with prev as (select status from tasks where id = $2 and user_id = $1)
+     update tasks set ${assigns}, updated_at = now() where id = $2 and user_id = $1
+     returning *, (select status from prev) as prev_status`,
     [req.user.id, req.params.id, ...keys.map(k => set[k])]
   );
   if (!task) return res.status(404).json({ error: 'Task not found' });
-  res.json({ task });
+  const spawned = await spawnNext(req.user, task);
+  delete task.prev_status;
+  res.json({ task, spawned });
 });
 
 r.delete('/:id', async (req, res) => {
@@ -177,10 +211,14 @@ r.post('/bulk', async (req, res) => {
   const keys = Object.keys(set);
   const assigns = keys.map((k, i) => `${k} = $${i + 3}`).join(', ');
   const rows = await many(
-    `update tasks set ${assigns}, updated_at = now() where user_id = $1 and id = any($2::uuid[]) returning id`,
+    `with prev as (select id, status from tasks where user_id = $1 and id = any($2::uuid[]))
+     update tasks set ${assigns}, updated_at = now() where user_id = $1 and id = any($2::uuid[])
+     returning tasks.*, (select status from prev where prev.id = tasks.id) as prev_status`,
     [req.user.id, ids, ...keys.map(k => set[k])]
   );
-  res.json({ changed: rows.length });
+  // Marking twenty repeating tasks done in one go has to leave twenty copies.
+  const spawned = (await Promise.all(rows.map(t => spawnNext(req.user, t)))).filter(Boolean);
+  res.json({ changed: rows.length, spawned: spawned.length });
 });
 
 export default r;
