@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { project, rubberband, resist, nearest, velocityTracker } from './spring.js';
+import { project, rubberband, resist, nearest, velocityTracker,
+         springStep, springAtRest } from './spring.js';
 
 test('projection grows with speed and flips with direction', () => {
   assert.ok(project(1000) > project(500), 'a faster flick travels further');
@@ -59,4 +60,45 @@ test('one sample, or two in the same millisecond, is not a velocity', () => {
   assert.deepEqual(t.read(), { vx: 0, vy: 0 });
   t.add(80, 0, 1000);
   assert.deepEqual(t.read(), { vx: 0, vy: 0 }, 'no division by zero');
+});
+
+test('a critically damped spring reaches its target and never overshoots', () => {
+  let s = { value: 0, velocity: 0 };
+  let max = 0;
+  for (let i = 0; i < 400; i++) {
+    s = springStep(s, 100, 1 / 60, { damping: 1, response: 0.4 });
+    max = Math.max(max, s.value);
+  }
+  assert.ok(springAtRest(s, 100), `settled at ${s.value}`);
+  assert.ok(max <= 100.5, `no overshoot, peaked at ${max}`);
+});
+
+test('below critical damping it overshoots, which is the point of bounce', () => {
+  let s = { value: 0, velocity: 0 };
+  let max = 0;
+  for (let i = 0; i < 400; i++) {
+    s = springStep(s, 100, 1 / 60, { damping: 0.6, response: 0.4 });
+    max = Math.max(max, s.value);
+  }
+  assert.ok(max > 100, `expected overshoot, peaked at ${max}`);
+  assert.ok(springAtRest(s, 100), 'and it still comes to rest');
+});
+
+test('a release velocity carries the value past the target before it returns', () => {
+  // Thrown at 900px/s toward a target only 10px away: it must go beyond and
+  // come back, because a hand-off that ignores speed is the visible seam.
+  let s = { value: 0, velocity: 900 };
+  let max = 0;
+  for (let i = 0; i < 400; i++) {
+    s = springStep(s, 10, 1 / 60, { damping: 1, response: 0.4 });
+    max = Math.max(max, s.value);
+  }
+  assert.ok(max > 10, `carried to ${max}`);
+  assert.ok(springAtRest(s, 10));
+});
+
+test('a long frame is clamped rather than integrated whole', () => {
+  // 2s in one step would send an unclamped spring to infinity.
+  const big = springStep({ value: 0, velocity: 0 }, 100, 1 / 30, { damping: 1, response: 0.4 });
+  assert.ok(Number.isFinite(big.value) && Math.abs(big.value) < 200, big.value);
 });

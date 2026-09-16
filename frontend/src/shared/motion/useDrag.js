@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { velocityTracker } from './spring.js';
 
 /* One dragging primitive for the whole app.
@@ -21,6 +21,13 @@ export function useDrag({ onStart, onMove, onEnd, threshold = 6, enabled = true 
   const [dragging, setDragging] = useState(false);
   const live = useRef(null);
 
+  /* The handlers are bound once at pointerdown but must call the *current*
+     callbacks, not the ones that existed when the finger went down. Without
+     this a gesture reads props from the render it started in, which for a
+     drag that lasts a second is guaranteed to be stale. */
+  const cb = useRef({ onStart, onMove, onEnd });
+  useEffect(() => { cb.current = { onStart, onMove, onEnd }; });
+
   const finish = useCallback((cancelled) => {
     const s = live.current;
     if (!s) return;
@@ -37,8 +44,8 @@ export function useDrag({ onStart, onMove, onEnd, threshold = 6, enabled = true 
     // never told it started, so it is not told it ended either.
     if (!s.moved) return;
     const v = cancelled ? { vx: 0, vy: 0 } : s.track.read();
-    onEnd?.({ ...s.last, ...v, cancelled });
-  }, [onEnd]);
+    cb.current.onEnd?.({ ...s.last, ...v, cancelled });
+  }, []);
 
   const onPointerDown = useCallback(e => {
     if (!enabled || e.button !== 0 || live.current) return;
@@ -62,24 +69,27 @@ export function useDrag({ onStart, onMove, onEnd, threshold = 6, enabled = true 
         if (Math.hypot(dx, dy) < threshold) return;
         s.moved = true;
         setDragging(true);
-        onStart?.({ x: s.startX, y: s.startY, grabX: s.grabX, grabY: s.grabY,
-                    width: s.width, height: s.height });
+        cb.current.onStart?.({ x: s.startX, y: s.startY, grabX: s.grabX, grabY: s.grabY,
+                              width: s.width, height: s.height });
       }
       track.add(ev.clientX, ev.clientY, ev.timeStamp);
       s.last = { dx, dy, x: ev.clientX, y: ev.clientY,
                  grabX: s.grabX, grabY: s.grabY, width: s.width, height: s.height };
-      onMove?.(s.last);
+      cb.current.onMove?.(s.last);
     };
     s.up = () => finish(false);
     s.key = ev => { if (ev.key === 'Escape') finish(true); };
 
     live.current = s;
-    el.setPointerCapture(e.pointerId);
+    // Capture keeps a fast drag from being dropped the moment it outruns the
+    // element. It throws for a pointer the browser no longer considers active,
+    // and that must not take the gesture down with it.
+    try { el.setPointerCapture(e.pointerId); } catch { /* track without it */ }
     el.addEventListener('pointermove', s.move);
     el.addEventListener('pointerup', s.up);
     el.addEventListener('pointercancel', s.up);
     window.addEventListener('keydown', s.key);
-  }, [enabled, threshold, onStart, onMove, finish]);
+  }, [enabled, threshold, finish]);
 
   return { dragging, onPointerDown };
 }

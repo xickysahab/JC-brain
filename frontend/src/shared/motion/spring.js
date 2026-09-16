@@ -83,3 +83,84 @@ export const reducedMotion = () =>
 /** The same intent, expressed gently. Reduced motion is not "no feedback" -
     it is a cross-fade where there would have been a slide. */
 export const spring = preset => (reducedMotion() ? { duration: 0.16, ease: 'easeOut' } : preset);
+
+/* ---------------------------------------------------------------------------
+   The integrator.
+
+   Motion drives the component-level work - presence, layout, transforms on a
+   DOM node - and does it well. Handing it a bare number is a different path,
+   and on this build that path resolves in two frames instead of springing, so
+   the gesture layer runs on its own integrator. It is twenty lines, it is
+   pure, and the settle after a drag is the one motion in the app that has to
+   be exactly right.
+
+   Apple's two parameters rather than the physics triplet:
+     damping   1 settles without overshoot, below 1 bounces
+     response  seconds to reach the target - not a duration, a stiffness
+   --------------------------------------------------------------------------- */
+
+/** One step of a damped harmonic oscillator. Pure, so the physics can be
+    tested without a browser. @returns {{value:number, velocity:number}} */
+export function springStep({ value, velocity }, target, dt, { damping = 1, response = 0.4 } = {}) {
+  const w = (2 * Math.PI) / response;          // natural frequency
+  const a = -(w * w) * (value - target) - 2 * damping * w * velocity;
+  const v = velocity + a * dt;
+  return { value: value + v * dt, velocity: v };
+}
+
+/** True once the spring is close enough and slow enough that another frame
+    would not change a pixel. */
+export const springAtRest = ({ value, velocity }, target) =>
+  Math.abs(value - target) < 0.08 && Math.abs(velocity) < 0.08;
+
+/**
+ * Run a spring to a target, starting at whatever speed the gesture ended on.
+ * @returns {{stop: Function}} stopping is how an interruption takes over.
+ */
+export function springTo({ from, to, velocity = 0, damping, response, onUpdate, onRest }) {
+  /* Nothing to travel through: a hidden tab's frame clock all but stops, so a
+     spring started there would hang half way and stay there. Arriving at once
+     is the honest answer - nobody is watching the journey. */
+  const jump = () => { onUpdate?.(to); onRest?.(); return { stop() {} }; };
+  if (reducedMotion() || document.visibilityState === 'hidden') return jump();
+
+  let state = { value: from, velocity };
+  let last = performance.now();
+  let frame = 0;
+  let live = true;
+
+  const finish = () => {
+    if (!live) return;
+    live = false;
+    cancelAnimationFrame(frame);
+    document.removeEventListener('visibilitychange', onHide);
+    onUpdate?.(to);
+    onRest?.();
+  };
+  const onHide = () => { if (document.visibilityState === 'hidden') finish(); };
+  document.addEventListener('visibilitychange', onHide);
+
+  const tick = now => {
+    // A long frame - a background tab, a slow paint - must not be integrated
+    // as one huge step, or the spring explodes instead of settling.
+    const dt = Math.min((now - last) / 1000, 1 / 30);
+    last = now;
+    state = springStep(state, to, dt, { damping, response });
+
+    if (springAtRest(state, to)) { finish(); return; }
+    onUpdate?.(state.value);
+    frame = requestAnimationFrame(tick);
+  };
+
+  frame = requestAnimationFrame(tick);
+  return {
+    /* Stopping leaves the value wherever it is - that is what an interruption
+       wants, because the new gesture is about to take it from there. */
+    stop() {
+      if (!live) return;
+      live = false;
+      cancelAnimationFrame(frame);
+      document.removeEventListener('visibilitychange', onHide);
+    }
+  };
+}

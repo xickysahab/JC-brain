@@ -1,11 +1,15 @@
 import { useEffect, useRef } from 'react';
 import WidgetFrame, { MIN_W, MIN_H } from './WidgetFrame.jsx';
 import { widgetDef } from './widgets/index.jsx';
+import { resist } from '../../shared/motion/spring.js';
 
 /* A key event dispatched on window has no .matches; guard before asking. */
 const isField = el => el instanceof Element && el.matches('input, textarea, select, [contenteditable]');
 
 const SNAP = 8;
+/* How hard the edge pushes back. Measured against a typical widget rather
+   than the viewport, so the resistance feels the same on any screen. */
+const EDGE = 420;
 const snapTo = (v, on) => (on ? Math.round(v / SNAP) * SNAP : Math.round(v));
 
 /* The free canvas. Widgets are absolutely positioned, may overlap, and carry
@@ -19,12 +23,32 @@ export default function Canvas({
 
   const patch = (id, fields) => onChange(list => list.map(w => (w.id === id ? { ...w, ...fields } : w)));
 
-  const setGeometry = (id, g) => patch(id, {
+  /* Two modes on purpose.
+
+     Live, the widget follows the pointer exactly and the edge resists instead
+     of stopping - a hard stop at x=0 reads as frozen, and snapping to a grid
+     mid-drag means the thing under your finger is not where your finger is.
+
+     Committed, it snaps and clamps. Aiming happens while you can see it; the
+     tidying happens when you let go. */
+  const liveGeometry = g => ({
+    ...('x' in g ? { x: resist(g.x, 0, Infinity, EDGE) } : {}),
+    ...('y' in g ? { y: resist(g.y, 0, Infinity, EDGE) } : {}),
+    ...('w' in g ? { w: Math.max(MIN_W, g.w) } : {}),
+    ...('h' in g ? { h: Math.max(MIN_H, g.h) } : {})
+  });
+
+  /* Where a gesture's result belongs once it is over. The frame asks for this
+     so its spring knows what to aim at - only the canvas knows whether the
+     grid is on. */
+  const resolveGeometry = g => ({
     ...('x' in g ? { x: Math.max(0, snapTo(g.x, snap)) } : {}),
     ...('y' in g ? { y: Math.max(0, snapTo(g.y, snap)) } : {}),
     ...('w' in g ? { w: Math.max(MIN_W, snapTo(g.w, snap)) } : {}),
     ...('h' in g ? { h: Math.max(MIN_H, snapTo(g.h, snap)) } : {})
   });
+
+  const setGeometry = (id, g, live = false) => patch(id, live ? liveGeometry(g) : resolveGeometry(g));
 
   const zRange = () => widgets.reduce(
     (a, w) => ({ min: Math.min(a.min, w.z), max: Math.max(a.max, w.z) }),
@@ -71,6 +95,7 @@ export default function Canvas({
             selected={selectedId === w.id}
             onSelect={onSelect}
             onGeometry={setGeometry}
+            onResolve={resolveGeometry}
             onBegin={onBegin}
             onEnd={onEnd}
             onRemove={onRemove}
