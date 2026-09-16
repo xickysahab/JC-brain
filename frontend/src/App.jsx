@@ -5,6 +5,7 @@ import Shell from './shared/Shell.jsx';
 import Login from './pages/Login/Login.jsx';
 import Tasks from './pages/Tasks/Tasks.jsx';
 import Users from './pages/Users/Users.jsx';
+import Account from './pages/Account/Account.jsx';
 import Dashboard from './pages/Dashboard/Dashboard.jsx';
 import Calendar from './pages/Calendar/Calendar.jsx';
 
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/todo" element={<Tasks />} />
         <Route path="/calendar" element={<Calendar />} />
+        <Route path="/account" element={<Account user={user} />} />
         {user.role === 'admin' && <Route path="/admin" element={<Users me={user} />} />}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

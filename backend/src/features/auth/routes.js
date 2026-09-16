@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { one } from '../../shared/db.js';
 import { verify, issue, clear, requireAuth, hash, badPassword } from '../../shared/auth.js';
+import { byAddress, byAccount } from './throttle.js';
 
 const r = Router();
 const publicUser = u => ({ id: u.id, email: u.email, name: u.name, role: u.role });
@@ -10,11 +11,22 @@ r.post('/login', async (req, res) => {
   const password = String(req.body?.password || '');
   if (!email || !password) return res.status(400).json({ error: 'Email and password are required' });
 
+  const ip = req.ip || 'unknown';
+  const account = `${ip}|${email}`;
+  if (byAddress.blocked(ip) || byAccount.blocked(account)) {
+    return res.status(429).json({ error: 'Too many attempts. Wait a few minutes and try again.' });
+  }
+
   const user = await one('select * from users where lower(email) = $1', [email]);
   // Same message either way so the form cannot be used to discover valid emails.
   const ok = user && user.is_active && await verify(password, user.password_hash);
-  if (!ok) return res.status(401).json({ error: 'Email or password is wrong' });
+  if (!ok) {
+    byAddress.fail(ip);
+    byAccount.fail(account);
+    return res.status(401).json({ error: 'Email or password is wrong' });
+  }
 
+  byAccount.clear(account);
   issue(res, user);
   res.json({ user: publicUser(user) });
 });

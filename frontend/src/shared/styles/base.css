@@ -9,6 +9,7 @@
   font-size:13.5px;font-weight:500;white-space:nowrap;
   transition:all .2s var(--ease);
   box-shadow:var(--shadow);
+  text-decoration:none;          /* a link can wear .btn too */
 }
 .btn:hover:not(:disabled){background:var(--surface-3);border-color:var(--ink-3);transform:translateY(-1px);box-shadow:var(--shadow-md)}
 .btn:active:not(:disabled){transform:translateY(1px);box-shadow:var(--shadow)}

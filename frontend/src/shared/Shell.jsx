@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { api } from '../shared/api.js';
-import { LayoutDashboard, CheckSquare, CalendarDays, Users, Menu, LogOut, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, CalendarDays, Users, Menu, LogOut, ShieldAlert, KeyRound } from 'lucide-react';
 import './Shell.css';
 import { Toaster } from './undo.jsx';
 import CommandPalette from './CommandPalette.jsx';
@@ -49,7 +49,11 @@ export default function Shell({ user, onSignedOut, children }) {
         <div className="railfoot">
           <b>{user.name || user.email}</b>
           <span>{user.role === 'admin' ? 'Admin' : 'Client'}</span>
-          <button className="btn sm" style={{ marginTop: 12, width: '100%', justifyContent: 'flex-start' }} onClick={signOut}>
+          <NavLink to="/account" className="btn sm"
+                   style={{ marginTop: 12, width: '100%', justifyContent: 'flex-start' }}>
+            <KeyRound size={16} /> Account
+          </NavLink>
+          <button className="btn sm" style={{ marginTop: 6, width: '100%', justifyContent: 'flex-start' }} onClick={signOut}>
             <LogOut size={16} /> Sign out
           </button>
         </div>
