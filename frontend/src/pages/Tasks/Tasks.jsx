@@ -48,7 +48,6 @@ export default function Todo() {
   const [error, setError] = useState('');
   const [modal, setModal] = useState(null);      // a draft, or an existing task
   const [selected, setSelected] = useState(() => new Set());
-  const [busyId, setBusyId] = useState(null);
   const store = useBuckets();
   const hidden = usePendingHidden();
   const fieldPrefs = useTaskFields();
@@ -89,23 +88,45 @@ export default function Todo() {
 
   /* Enter goes straight to the server. The modal is still one keystroke away
      (⌘Enter), but it is no longer the price of capturing a thought. */
-  const create = async drafts => {
+  /* Optimistic writes.
+
+     The screen changes on the keystroke and the server catches up. No click is
+     saved by this - but "the app feels fast" is almost always this and nothing
+     else. Every one of them puts the old value back if the call fails, so a
+     dropped connection never leaves a lie on screen. */
+  const optimistic = async (apply, undo, call) => {
     setError('');
-    try {
-      for (const d of drafts) await api.post('/tasks', d);
-      refresh();
-    } catch (err) { setError(err.message); }
+    apply();
+    try { await call(); }
+    catch (err) { undo(); setError(err.message); return; }
+    refresh();                       // reconcile: server owns score and urgency
   };
 
-  const assign = async (taskId, toBucketId) => {
-    setBusyId(taskId);
-    try { await api.patch(`/tasks/${taskId}`, { bucket_id: toBucketId }); refresh(); }
-    catch (err) { setError(err.message); } finally { setBusyId(null); }
+  const create = drafts => {
+    // Placeholder rows carry the fields we know; the refetch swaps in the
+    // server's version with its computed urgency and score.
+    const temps = drafts.map((d, i) => ({
+      ...d, id: `tmp-${Date.now()}-${i}`, label: 'UNSCHEDULED', score: 10, pending: true
+    }));
+    return optimistic(
+      () => setTasks(ts => [...temps, ...ts]),
+      () => setTasks(ts => ts.filter(t => !temps.some(x => x.id === t.id))),
+      () => Promise.all(drafts.map(d => api.post('/tasks', d)))
+    );
   };
 
-  const toggleDone = async t => {
-    try { await api.patch(`/tasks/${t.id}`, { status: t.status === 'Done' ? 'Todo' : 'Done' }); refresh(); }
-    catch (err) { setError(err.message); }
+  const assign = (taskId, toBucketId) => {
+    const before = tasks.find(t => t.id === taskId)?.bucket_id ?? null;
+    const set = v => setTasks(ts => ts.map(t => (t.id === taskId ? { ...t, bucket_id: v } : t)));
+    return optimistic(() => set(toBucketId), () => set(before),
+                      () => api.patch(`/tasks/${taskId}`, { bucket_id: toBucketId }));
+  };
+
+  const toggleDone = t => {
+    const next = t.status === 'Done' ? 'Todo' : 'Done';
+    const set = v => setTasks(ts => ts.map(x => (x.id === t.id ? { ...x, status: v } : x)));
+    return optimistic(() => set(next), () => set(t.status),
+                      () => api.patch(`/tasks/${t.id}`, { status: next }));
   };
 
   const bulk = async payload => {
@@ -221,7 +242,7 @@ export default function Todo() {
       {loading ? [0, 1, 2].map(i => <div key={i} className="skel" />)
         : mode === 'triage' ? (
           <Triage tasks={shown} buckets={store.buckets} onAssign={assign}
-                  onOpen={id => setModal(tasks.find(t => t.id === id))} busyId={busyId} />
+                  onOpen={id => setModal(tasks.find(t => t.id === id))} />
         ) : mode === 'board' ? (
           <Board tasks={shown} buckets={store.buckets} onAssign={assign} onOpen={id => setModal(tasks.find(t => t.id === id))} />
         ) : !visible.length ? (
@@ -230,7 +251,7 @@ export default function Todo() {
           const closed = t.status === 'Done' || t.status === 'Cancelled';
           const b = store.buckets.find(x => x.id === t.bucket_id);
           return (
-            <div key={t.id} className={'row' + (closed ? ' closed' : '') + (visible[focusIdx]?.id === t.id ? ' focused' : '')} onClick={() => setModal(t)}>
+            <div key={t.id} className={'row' + (closed ? ' closed' : '') + (visible[focusIdx]?.id === t.id ? ' focused' : '') + (t.pending ? ' pending' : '')} onClick={() => setModal(t)}>
               <input type="checkbox" className="apple-checkbox" checked={selected.has(t.id)} 
                      onClick={e => e.stopPropagation()}
                      onChange={() => toggleSel(t.id)}

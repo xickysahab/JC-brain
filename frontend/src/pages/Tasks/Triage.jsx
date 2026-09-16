@@ -3,7 +3,7 @@ import { bucketColor } from '../../shared/useBuckets.js';
 /* The second half of "dump now, sort later": every loose task with the bucket
    chips right underneath it, so sorting twenty tasks is twenty clicks and no
    dialogs. */
-export default function Triage({ tasks, buckets, onAssign, onOpen, busyId }) {
+export default function Triage({ tasks, buckets, onAssign, onOpen }) {
   if (!buckets.length) {
     return (
       <div className="empty">
@@ -27,7 +27,7 @@ export default function Triage({ tasks, buckets, onAssign, onOpen, busyId }) {
         {tasks.length} task{tasks.length === 1 ? '' : 's'} waiting to be sorted. Pick a bucket below — it files instantly.
       </p>
       {tasks.map(t => (
-        <div key={t.id} className={'triage' + (busyId === t.id ? ' busy' : '')}>
+        <div key={t.id} className="triage">
           <button className="ttitle" onClick={() => onOpen(t.id)}>{t.title}</button>
           <div className="tbuckets">
             {buckets.map(b => (
