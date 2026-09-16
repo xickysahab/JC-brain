@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { Undo2, X } from 'lucide-react';
+import { SPRING, spring } from './motion/spring.js';
 
 /* A key event dispatched on window has no .matches; guard before asking. */
 const isField = el => el instanceof Element && el.matches('input, textarea, select, [contenteditable]');
@@ -85,12 +87,22 @@ export function Toaster() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  if (!state) return null;
+  /* It leaves downward because it arrived from below. A toast that slides up
+     and then fades in place reads as two different objects. */
   return (
-    <div className="toaster" role="status" aria-live="polite">
-      <span>{state.message}</span>
-      <button onClick={() => state.undo()}><Undo2 size={13} /> Undo <kbd>⌘Z</kbd></button>
-      <button className="x" onClick={flushUndo} aria-label="Dismiss"><X size={13} /></button>
-    </div>
+    <AnimatePresence>
+      {state && (
+        <motion.div className="toaster" role="status" aria-live="polite"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 16 }}
+          transition={spring(SPRING.sheet)}
+        >
+          <span>{state.message}</span>
+          <button onClick={() => state.undo()}><Undo2 size={13} /> Undo <kbd>⌘Z</kbd></button>
+          <button className="x" onClick={flushUndo} aria-label="Dismiss"><X size={13} /></button>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../../shared/api.js';
 import TaskModal from './TaskModal.jsx';
 import BucketBar from './BucketBar.jsx';
@@ -47,6 +47,18 @@ export default function Todo() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [modal, setModal] = useState(null);      // a draft, or an existing task
+  const [anchor, setAnchor] = useState(null);   // the point the sheet grows from
+  /* The sheet has to keep its contents while it animates away, so the last
+     task it showed outlives the state that opened it. */
+  const sheetTask = useRef(null);
+  if (modal) sheetTask.current = modal;
+
+  /* Open from wherever the click landed: a sheet that grows out of the row you
+     touched keeps the link between the two visible. */
+  const openFrom = (e, task) => {
+    if (e?.clientX) setAnchor({ x: e.clientX, y: e.clientY });
+    setModal(task);
+  };
   const [selected, setSelected] = useState(() => new Set());
   const store = useBuckets();
   const hidden = usePendingHidden();
@@ -251,7 +263,7 @@ export default function Todo() {
           const closed = t.status === 'Done' || t.status === 'Cancelled';
           const b = store.buckets.find(x => x.id === t.bucket_id);
           return (
-            <div key={t.id} className={'row' + (closed ? ' closed' : '') + (visible[focusIdx]?.id === t.id ? ' focused' : '') + (t.pending ? ' pending' : '')} onClick={() => setModal(t)}>
+            <div key={t.id} className={'row' + (closed ? ' closed' : '') + (visible[focusIdx]?.id === t.id ? ' focused' : '') + (t.pending ? ' pending' : '')} onClick={e => openFrom(e, t)}>
               <input type="checkbox" className="apple-checkbox" checked={selected.has(t.id)} 
                      onClick={e => e.stopPropagation()}
                      onChange={() => toggleSel(t.id)}
@@ -294,9 +306,11 @@ export default function Todo() {
         </div>
       )}
 
-      {modal && fieldPrefs.ready && (
+      {fieldPrefs.ready && sheetTask.current && (
         <TaskModal
-          task={modal}
+          show={!!modal}
+          anchor={anchor}
+          task={sheetTask.current}
           buckets={store.buckets}
           fields={fieldPrefs.fields}
           visible={fieldPrefs.visible}

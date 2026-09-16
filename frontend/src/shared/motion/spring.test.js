@@ -1,0 +1,62 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { project, rubberband, resist, nearest, velocityTracker } from './spring.js';
+
+test('projection grows with speed and flips with direction', () => {
+  assert.ok(project(1000) > project(500), 'a faster flick travels further');
+  assert.equal(project(0), 0);
+  assert.equal(project(-500), -project(500));
+  // A 1000px/s flick at the scroll deceleration rate carries about half a
+  // screen - the number that makes a flick feel like a throw.
+  assert.ok(project(1000) > 400 && project(1000) < 600, project(1000));
+});
+
+test('a snappier deceleration rate travels less', () => {
+  assert.ok(project(1000, 0.99) < project(1000, 0.998));
+});
+
+test('rubber-banding gives ground at first and almost none later', () => {
+  const d = 400;
+  const small = rubberband(10, d), large = rubberband(400, d);
+  assert.ok(small < 10, 'even a small overshoot is resisted');
+  assert.ok(large < 400 / 2, 'a large one barely moves at all');
+  assert.ok(large > small, 'but it never stops dead');
+  assert.equal(rubberband(0, d), 0);
+});
+
+test('resist passes through inside the bounds and resists outside', () => {
+  assert.equal(resist(50, 0, 100, 400), 50);
+  assert.ok(resist(-40, 0, 100, 400) > -40 && resist(-40, 0, 100, 400) < 0, 'below the floor');
+  assert.ok(resist(140, 0, 100, 400) < 140 && resist(140, 0, 100, 400) > 100, 'above the ceiling');
+});
+
+test('nearest picks the closest snap point, or passes through with none', () => {
+  assert.equal(nearest(63, [0, 50, 100]), 50);
+  assert.equal(nearest(76, [0, 50, 100]), 100);
+  assert.equal(nearest(63, []), 63);
+});
+
+test('velocity is read over a window, not between the last two events', () => {
+  const t = velocityTracker(100);
+  t.add(0, 0, 1000);
+  t.add(50, 0, 1050);
+  t.add(100, 0, 1100);
+  assert.equal(Math.round(t.read().vx), 1000, '100px in 100ms is 1000px/s');
+});
+
+test('a finger that stops before lifting hands over nothing', () => {
+  const t = velocityTracker(100);
+  t.add(0, 0, 1000);
+  t.add(200, 0, 1100);      // a fast move...
+  t.add(200, 0, 1180);      // ...then held still
+  t.add(200, 0, 1260);
+  assert.equal(t.read().vx, 0, 'the old speed has fallen out of the window');
+});
+
+test('one sample, or two in the same millisecond, is not a velocity', () => {
+  const t = velocityTracker();
+  t.add(0, 0, 1000);
+  assert.deepEqual(t.read(), { vx: 0, vy: 0 });
+  t.add(80, 0, 1000);
+  assert.deepEqual(t.read(), { vx: 0, vy: 0 }, 'no division by zero');
+});

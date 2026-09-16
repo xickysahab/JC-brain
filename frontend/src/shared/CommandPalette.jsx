@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { LayoutDashboard, CheckSquare, CalendarDays, Users, Plus, Search, CornerDownLeft } from 'lucide-react';
 import { api } from './api.js';
 import { rank } from './fuzzy.js';
+import { Scrim, Surface } from './motion/Surface.jsx';
 
 /* One shortcut that reaches everything.
 
@@ -78,11 +79,10 @@ export default function CommandPalette({ user }) {
     if (e.key === 'Enter')     { e.preventDefault(); run(items[cursor]); }
   };
 
-  if (!open) return null;
   return (
     <>
-      <div className="scrim" style={{ zIndex: 70 }} onClick={() => setOpen(false)} />
-      <div className="cmdk" role="dialog" aria-label="Command palette">
+      <Scrim show={open} z={70} onClick={() => setOpen(false)} />
+      <Surface show={open} className="cmdk" role="dialog" aria-label="Command palette">
         <div className="cmdk-input">
           <Search size={17} />
           <input ref={inputRef} value={q} placeholder="Search tasks, buckets and pages…"
@@ -107,7 +107,7 @@ export default function CommandPalette({ user }) {
             ))}
           </ul>
         )}
-      </div>
+      </Surface>
     </>
   );
 }

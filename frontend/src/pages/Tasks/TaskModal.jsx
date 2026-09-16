@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../../shared/api.js';
 import DialogModal from '../../shared/DialogModal.jsx';
 import Checklist from './Checklist.jsx';
+import { Scrim, Surface } from '../../shared/motion/Surface.jsx';
 import { undoable } from '../../shared/undo.jsx';
 
 const toLocal = iso => {
@@ -15,7 +16,7 @@ const fromLocal = v => (v ? new Date(v).toISOString() : null);
    capture is never interrupted - filling the rest is optional, Save alone is a
    complete action. The same modal reopens from the row's info button, and its
    own footer is where the user chooses which fields it shows. */
-export default function TaskModal({ task, buckets, fields, visible, onClose, onSaved, onSaveFields }) {
+export default function TaskModal({ show, anchor, task, buckets, fields, visible, onClose, onSaved, onSaveFields }) {
   const isNew = !task.id;
   const [draft, setDraft] = useState(task);
   const [error, setError] = useState('');
@@ -27,10 +28,11 @@ export default function TaskModal({ task, buckets, fields, visible, onClose, onS
   useEffect(() => { setDraft(task); }, [task]);
   useEffect(() => { setPicked(visible); }, [visible]);
   useEffect(() => {
+    if (!show) return;
     const esc = e => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', esc);
     return () => window.removeEventListener('keydown', esc);
-  }, [onClose]);
+  }, [onClose, show]);
 
   const set = (k, v) => setDraft(d => ({ ...d, [k]: v }));
   const shown = fields.filter(f => visible.includes(f.key));
@@ -108,8 +110,9 @@ export default function TaskModal({ task, buckets, fields, visible, onClose, onS
 
   return (
     <>
-      <div className="scrim" onClick={onClose} />
-      <div className="tmodal" role="dialog" aria-label={isNew ? 'New task' : 'Edit task'}>
+      <Scrim show={show} onClick={onClose} />
+      <Surface show={show} anchor={anchor} className="tmodal"
+               role="dialog" aria-label={isNew ? 'New task' : 'Edit task'}>
         <header>
           <h2>{picking ? 'Customise this form' : isNew ? 'New task' : 'Task details'}</h2>
           <button className="dclose" onClick={onClose} aria-label="Close">&times;</button>
@@ -165,7 +168,7 @@ export default function TaskModal({ task, buckets, fields, visible, onClose, onS
             </footer>
           </form>
         )}
-      </div>
+      </Surface>
       <DialogModal dialog={dialog} onClose={() => setDialog(null)} />
     </>
   );

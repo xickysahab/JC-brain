@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { motion } from 'motion/react';
 import { NavLink } from 'react-router-dom';
 import { api } from '../shared/api.js';
 import { LayoutDashboard, CheckSquare, CalendarDays, Users, Menu, LogOut, ShieldAlert, KeyRound, CloudOff } from 'lucide-react';
@@ -7,6 +8,7 @@ import { Toaster } from './undo.jsx';
 import CommandPalette from './CommandPalette.jsx';
 import Reminders from './Reminders.jsx';
 import { useOnline } from './useOnline.js';
+import { SPRING, spring } from './motion/spring.js';
 
 const NAV = [
   { to: '/',         label: 'Dashboard', icon: LayoutDashboard },
@@ -19,6 +21,19 @@ export default function Shell({ user, onSignedOut, children }) {
   const [open, setOpen] = useState(() => window.innerWidth > 760);
   const [counts, setCounts] = useState({});
   const online = useOnline();
+  const railRef = useRef(null);
+  const [railWidth, setRailWidth] = useState(0);
+
+  /* The rail slides on a spring, so a second click during the slide re-targets
+     the same motion instead of queueing behind it. Its width is measured
+     rather than assumed: the breakpoint changes --rail, and a hard-coded
+     number would leave a gap at exactly the size where it shows. */
+  useLayoutEffect(() => {
+    const measure = () => setRailWidth(railRef.current?.offsetWidth || 0);
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
 
   useEffect(() => { api.get('/tasks/counts').then(setCounts).catch(() => {}); }, []);
 
@@ -31,7 +46,15 @@ export default function Shell({ user, onSignedOut, children }) {
 
   return (
     <div className="shell">
-      <nav className={`rail${open ? '' : ' closed'}`} aria-label="Sections">
+      <motion.nav
+        ref={railRef}
+        className="rail"
+        aria-label="Sections"
+        aria-hidden={!open}
+        animate={{ marginLeft: open ? 0 : -railWidth }}
+        transition={spring(SPRING.sheet)}
+        initial={false}
+      >
         <div className="brand">JC COMMAND CENTER</div>
         {NAV.map(n => (
           <NavLink key={n.to} to={n.to} end={n.to === '/'}
@@ -62,7 +85,7 @@ export default function Shell({ user, onSignedOut, children }) {
             <LogOut size={16} /> Sign out
           </button>
         </div>
-      </nav>
+      </motion.nav>
 
       <div className="main">
         <header className="topbar">

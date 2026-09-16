@@ -3,6 +3,11 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  /* Motion is pre-bundled by Vite in dev; without dedupe its copy of React
+     resolves separately from the app's and every hook inside a <motion.*>
+     throws "Invalid hook call". */
+  resolve: { dedupe: ['react', 'react-dom'] },
+  optimizeDeps: { include: ['motion/react', 'react', 'react-dom', 'react-dom/client'] },
   server: {
     port: 5180,
     strictPort: true,
