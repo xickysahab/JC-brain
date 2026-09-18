@@ -14,7 +14,11 @@
    Every colour lives here and nowhere else.
    ============================================================ */
 
-:root{
+/* The resolved theme is always stamped on <html> by the boot script in
+   index.html, so the cascade never has to ask the OS twice and there is no
+   flash of the wrong palette before React mounts. */
+:root,
+:root[data-theme="dark"]{
   color-scheme: dark;
 
   /* Ground and the surfaces that sit on it. Each step is lighter, not
@@ -98,46 +102,63 @@
    emit last would win - and it was not this one. */
 @media (max-width:760px){ :root{ --rail:236px } }
 
-@media (prefers-color-scheme: light){
-  :root{
-    color-scheme: light;
+/* ---------------------------------------------------------------------------
+   Light is its own design, not the dark one inverted.
 
-    --bg:#F5F5F8;
-    --surface:#FFFFFF;
-    --surface-2:#F1F1F6;
-    --surface-3:#E5E5EC;
-    --border:rgba(16,17,24,.085);
-    --border-2:rgba(16,17,24,.145);
+   Dark builds depth by getting lighter: each layer up is a brighter grey.
+   Light cannot do that - there is nowhere above white to go - so it builds
+   depth the other way round: a genuinely grey ground, white surfaces raised
+   off it, and soft cool shadows doing the lifting. The first version of this
+   file had a near-white ground under near-white panels, which left nothing
+   to raise off anything, and the sidebar dissolved into the page.
+   --------------------------------------------------------------------------- */
+:root[data-theme="light"]{
+  color-scheme: light;
 
-    --ink:#15161C;
-    --ink-2:#585E6E;
-    --ink-3:#868B9A;
+  /* Grey enough that white reads as raised, cool enough to sit under a
+     violet accent without turning beige. */
+  --bg:#EBECF1;
+  --surface:#FFFFFF;
+  --surface-2:#F4F5F8;      /* a fill inside a panel: hover, chip, input well */
+  --surface-3:#E7E9EF;      /* pressed, or the same fill one step firmer */
+  --border:rgba(16,18,27,.085);
+  --border-2:rgba(16,18,27,.155);
 
-    --accent:#5B4BE0;
-    --accent-2:#4636CC;
-    --accent-ink:#FFFFFF;
-    --accent-soft:rgba(91,75,224,.10);
-    --accent-line:rgba(91,75,224,.32);
+  --ink:#13151C;
+  --ink-2:#555B6B;
+  --ink-3:#83899A;
 
-    --red:#DC2F35;   --red-soft:rgba(220,47,53,.09);    --red-line:rgba(220,47,53,.30);
-    --amber:#B8730A; --amber-soft:rgba(184,115,10,.10); --amber-line:rgba(184,115,10,.30);
-    --green:#0C8F5C; --green-soft:rgba(12,143,92,.10);  --green-line:rgba(12,143,92,.30);
+  --accent:#5546D6;
+  --accent-2:#4235BC;
+  --accent-ink:#FFFFFF;
+  --accent-soft:rgba(85,70,214,.10);
+  --accent-line:rgba(85,70,214,.34);
 
-    --series-1:#5B4BE0; --series-2:#E0642A; --series-3:#0C8F5C; --series-4:#B8730A;
-    --series-5:#D6337A; --series-6:#0E86B8; --series-7:#0D8577; --series-8:#DC2F35;
-    --series-other:#A4A8B6;
+  /* Deepened for a white ground: the dark-mode values are tuned to glow on
+     near-black and read as shouting up here. */
+  --red:#CE2B33;   --red-soft:rgba(206,43,51,.09);    --red-line:rgba(206,43,51,.30);
+  --amber:#A8660A; --amber-soft:rgba(168,102,10,.10); --amber-line:rgba(168,102,10,.30);
+  --green:#0A7F52; --green-soft:rgba(10,127,82,.10);  --green-line:rgba(10,127,82,.30);
 
-    --shadow:0 1px 2px rgba(16,17,24,.06);
-    --shadow-md:0 6px 16px -4px rgba(16,17,24,.10), 0 2px 5px -2px rgba(16,17,24,.07);
-    --shadow-lg:0 24px 48px -12px rgba(16,17,24,.16), 0 8px 20px -8px rgba(16,17,24,.10),
-                0 0 0 1px rgba(16,17,24,.05);
+  --series-1:#5546D6; --series-2:#D2571F; --series-3:#0A7F52; --series-4:#A8660A;
+  --series-5:#C42B6E; --series-6:#0C74A3; --series-7:#0B7468; --series-8:#CE2B33;
+  --series-other:#9DA2B0;
 
-    --mat-thin:rgba(255,255,255,.62);
-    --mat-regular:rgba(255,255,255,.78);
-    --mat-thick:rgba(246,246,249,.92);
-    --mat-edge:rgba(255,255,255,.75);
-    --scrim:rgba(20,21,28,.28);
-  }
+  /* Cool-tinted and soft. A light-mode shadow is what does the lifting, so
+     it has to be visible - the previous 6% black at 2px blur was not. */
+  --shadow:0 1px 2px rgba(23,26,40,.07), 0 1px 1px rgba(23,26,40,.04);
+  --shadow-md:0 8px 20px -6px rgba(23,26,40,.14), 0 3px 6px -3px rgba(23,26,40,.09);
+  --shadow-lg:0 28px 56px -16px rgba(23,26,40,.22), 0 10px 24px -10px rgba(23,26,40,.14),
+              0 0 0 1px rgba(16,18,27,.045);
+
+  /* White glass over a grey ground, so a floating layer is legible as one.
+     The edge is a dark hairline: the bright top edge that makes dark glass
+     catch the light is invisible on white. */
+  --mat-thin:rgba(255,255,255,.66);
+  --mat-regular:rgba(255,255,255,.80);
+  --mat-thick:rgba(255,255,255,.92);
+  --mat-edge:rgba(16,18,27,.07);
+  --scrim:rgba(28,31,44,.26);
 }
 
 *{box-sizing:border-box}
@@ -175,16 +196,29 @@ a{color:var(--accent)}
 @media (prefers-reduced-transparency:reduce){
   :root{
     --mat-thin:var(--surface);--mat-regular:var(--surface);--mat-thick:var(--bg);
-    --blur-sm:0px;--blur:0px;--blur-lg:0px;--scrim:rgba(6,7,10,.8);
+    --blur-sm:0px;--blur:0px;--blur-lg:0px;
   }
+  :root,:root[data-theme="dark"]{--scrim:rgba(6,7,10,.82)}
+  :root[data-theme="light"]{--mat-thick:var(--surface);--scrim:rgba(28,31,44,.5)}
 }
 
-/* Asked for more contrast: near-solid grounds with a defined edge. */
+/* Asked for more contrast: near-solid grounds with a defined edge. Keyed on
+   the stamped theme rather than the OS setting, so it follows the toggle. */
 @media (prefers-contrast:more){
-  :root{--border:rgba(255,255,255,.28);--border-2:rgba(255,255,255,.42);--ink-3:#9BA0B0}
-  @media (prefers-color-scheme:light){
-    :root{--border:rgba(16,17,24,.32);--border-2:rgba(16,17,24,.48);--ink-3:#585E6E}
-  }
+  :root,:root[data-theme="dark"]{--border:rgba(255,255,255,.28);--border-2:rgba(255,255,255,.42);--ink-3:#9BA0B0}
+  :root[data-theme="light"]{--border:rgba(16,18,27,.34);--border-2:rgba(16,18,27,.50);--ink-3:#555B6B}
+}
+
+/* A theme change is the one brightness jump in the app, so it is eased rather
+   than snapped - but only for the moment it takes, or every hover would
+   inherit a 200ms colour lag. */
+:root.theme-turning,
+:root.theme-turning *{
+  transition:background-color .22s var(--ease),border-color .22s var(--ease),
+             color .22s var(--ease),fill .22s var(--ease)!important;
+}
+@media (prefers-reduced-motion:reduce){
+  :root.theme-turning,:root.theme-turning *{transition:none!important}
 }
 
 /* scrollbars */

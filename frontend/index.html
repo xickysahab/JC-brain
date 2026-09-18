@@ -10,6 +10,20 @@
     <meta name="theme-color" content="#0A0A0A" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <script>
+      /* Stamp the theme before the first paint. Deciding this in React means a
+         frame of the wrong palette on every load, which is the one flash a
+         person always notices. Kept in sync with shared/theme.js. */
+      (function () {
+        try {
+          var saved = localStorage.getItem('jc.theme');
+          var choice = ['auto', 'light', 'dark'].indexOf(saved) > -1 ? saved : 'auto';
+          document.documentElement.dataset.theme = choice === 'auto'
+            ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+            : choice;
+        } catch (e) { document.documentElement.dataset.theme = 'dark'; }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

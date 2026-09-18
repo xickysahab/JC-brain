@@ -7,6 +7,7 @@ import './Shell.css';
 import { Toaster } from './undo.jsx';
 import CommandPalette from './CommandPalette.jsx';
 import Reminders from './Reminders.jsx';
+import ThemeToggle from './ThemeToggle.jsx';
 import { useOnline } from './useOnline.js';
 import { SPRING, spring } from './motion/spring.js';
 
@@ -21,7 +22,7 @@ const NAV = [
 
 export default function Shell({ user, onSignedOut, children }) {
   // Sidebar slides out; on a narrow screen it starts hidden.
-  const [open, setOpen] = useState(() => window.innerWidth > 760);
+  const [open, setOpen] = useState(() => !matchMedia('(max-width: 760px)').matches);
   const [counts, setCounts] = useState({});
   const online = useOnline();
   /* The rail slides on a spring, so a second click during the slide re-targets
@@ -33,9 +34,19 @@ export default function Shell({ user, onSignedOut, children }) {
      sidebar flashing open and sliding shut on every single page load. */
   const [railWidth, setRailWidth] = useState(readRail);
   useEffect(() => {
-    const measure = () => setRailWidth(readRail());
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
+    /* Crossing the breakpoint changes what the rail *is*: a column that pushes
+       the page aside above it, a sheet that covers the page below. Left alone,
+       a window dragged narrow ended up with the sheet sitting over the content
+       with nothing to say so. */
+    const narrow = matchMedia('(max-width: 760px)');
+    const onResize = () => setRailWidth(readRail());
+    const onCross = e => setOpen(!e.matches);
+    window.addEventListener('resize', onResize);
+    narrow.addEventListener('change', onCross);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      narrow.removeEventListener('change', onCross);
+    };
   }, []);
 
   useEffect(() => { api.get('/tasks/counts').then(setCounts).catch(() => {}); }, []);
@@ -100,6 +111,7 @@ export default function Shell({ user, onSignedOut, children }) {
           </span>
           <span className="grow" />
           {!online && <span className="tag warn"><CloudOff size={14} /> Offline — showing the last data loaded</span>}
+          <ThemeToggle />
           <Reminders />
           {counts.overdue > 0 && <span className="tag hot"><ShieldAlert size={14} /> {counts.overdue} overdue</span>}
           {counts.sos > 0 && <span className="tag hot"><ShieldAlert size={14} /> {counts.sos} SOS</span>}

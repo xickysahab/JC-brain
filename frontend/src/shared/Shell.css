@@ -125,3 +125,23 @@
 .jc-lift > .ctitle{margin-bottom:4px}
 /* The target under the pointer, wherever it is. */
 [data-drop].dropping{background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent-line)}
+
+/* ---------- appearance ---------- */
+.themeswitch{
+  display:inline-flex;align-items:center;gap:2px;padding:2px;flex:none;
+  border:1px solid var(--border);border-radius:var(--r-pill);background:var(--surface-2);
+}
+.themeswitch button{
+  position:relative;display:grid;place-items:center;width:28px;height:24px;
+  border-radius:var(--r-pill);color:var(--ink-3);
+  transition:color .16s var(--ease),transform .09s ease-out;
+}
+.themeswitch button:hover{color:var(--ink-2)}
+.themeswitch button:active{transform:scale(.92);transition-duration:.06s}
+.themeswitch button.on{color:var(--accent)}
+.themeswitch button > svg{position:relative;z-index:1}
+/* The moving selection sits behind the icon and is the only thing that moves. */
+.themepill{
+  position:absolute;inset:0;border-radius:var(--r-pill);
+  background:var(--surface);border:1px solid var(--border-2);box-shadow:var(--shadow);
+}
